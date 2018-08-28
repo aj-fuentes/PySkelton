@@ -71,6 +71,7 @@ class Scaffolder(object):
         #cross profiles
         self.cross_profiles = set()
 
+
     def compute_scaffold(self):
 
         clock = time.clock()
@@ -509,7 +510,7 @@ class Scaffolder(object):
 
         #Reflection-based pairing
         # n = P1-P2
-        # n /= nla.norm(n)
+        # n /= nal.norm(n)
         # lc1 = np.array([2*project_into_plane(p,n) for p in c1])-c1
         # lc2 = c2
 
@@ -538,12 +539,16 @@ class Scaffolder(object):
                 reverse = True
             dc1.rotate(1)
 
+        idxs = co.deque(range(n))
+        if reverse: idxs.reverse()
+        idxs.rotate(min_i)
+
         # if ORDER_OF_CELLS==REVERSE: rev=not rev
         # res = zip( np.roll(c1,min_i,axis=0), c2[::-1] if rev else c2)
         # if ORDER_OF_CELLS==RANDOM:
         #     n = c2.shape[0]
         #     res = zip(c1,c2[random.sample(range(n),n)])
-        return min_i,reverse
+        return idxs
 
     def create_links(self):
         self.links = {} #store for each edge the linking details
@@ -600,12 +605,8 @@ class Scaffolder(object):
 
             total_quads += n
 
-            k,reverse = s.links[edge]
-            # print edge,k,reverse
-            if reverse: cell1.reverse()
-
-            dc1 = co.deque(cell1)
-            dc1.rotate(k)
+            idxs = s.links[edge]
+            dc1 = [cell1[idx] for idx in idxs]
 
             if self.palette:
                 k = int(np.random.rand()*len(self.palette))
