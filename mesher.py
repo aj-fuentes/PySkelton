@@ -44,9 +44,11 @@ class Mesher(object):
         #reorder cell1 to match the links
         cell1 = [cell1[idx] for idx in self.scaff.links[edge]]
 
+        ts = np.linspace(0,1.0,self.quads_num+1)
+
         ps = []
         for m,n in zip(cell1,cell2):
-            data = [((1.0-t)*m + t*n,P + t*l*v) for t in np.linspace(0,1.0,self.quads_num+1)]
+            data = [((1.0-t)*m + t*n,P + t*l*v) for t in ts]
             qs = [self.field.shoot_ray(Q,u,self.level_set,double_distance=8) for u,Q in data]
             ps.extend(qs)
         ps = np.array(ps)

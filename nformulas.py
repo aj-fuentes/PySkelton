@@ -53,6 +53,6 @@ compact_field_eval.restype = ctypes.c_double
 arc_compact_field_eval.restype = ctypes.c_double
 
 #declare documentation
-compact_field_eval.__doc__ = "double compact_field_eval(double *X, double *P, double *T, double *N, double l, double *alpha, double *beta, double *gamma, double R, size_t n, double max_err)"
-arc_compact_field_eval.__doc__ = "double arc_compact_field_eval(double *X, double *C, double r, double *u, double *v, double phi, double *alpha, double *beta, double *gamma, double R, size_t n, double max_err)"
+compact_field_eval.__doc__ = "double compact_field_eval(double *X, double *P, double *T, double *N, double l, double *a, double *b, double *c, double R, size_t n, double max_err)"
+arc_compact_field_eval.__doc__ = "double arc_compact_field_eval(double *X, double *C, double r, double *u, double *v, double phi, double *a, double *b, double *c, double R, size_t n, double max_err)"
 

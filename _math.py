@@ -36,3 +36,9 @@ def nodes_to_arc(n1,n2,n3,n4):
 def arc_points(arc,N=100):
     C,u,v,r,phi = arc
     return [C + r*(np.cos(t)*u + np.sin(t)*v) for t in np.linspace(0,phi,N)]
+
+def check_unit(v):
+    assert np.isclose(nla.norm(v),1.0), "v={} is not a unit vector".format(v)
+
+def check_perp(u,v):
+    assert np.isclose(np.dot(u,v),0.0), "u={} and v={} are not perpendicular vectors".format(u,v)

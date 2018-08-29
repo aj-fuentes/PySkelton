@@ -29,11 +29,10 @@ def arc_scaff():
 
     scaff = sc.Scaffolder(g)
     scaff.min_subdivs = 16
-
     scaff.compute_scaffold()
 
-    arc_skeleton = sk.Arc(C,u,v,r,phi)
-    field = fl.ArcField(1.0,arc_skeleton,[1.0,1.0],[2.0,1.0],[1.0,1.0])
+    arc_skeleton = sk.Arc(C,u,v,r,phi,[1.0,1.0],[2.0,1.0],[1.0,1.0])
+    field = fl.ArcField(1.0,arc_skeleton,)
 
     mesher = ms.Mesher(scaff,field)
     # mesher.quads_num=1
@@ -47,5 +46,53 @@ def arc_scaff():
     vis.show()
 
 
+def segment_scaff():
+
+    def add_arc(g):
+        C = np.array([0.4,-3.0,10.0])
+        r = 4.0
+        phi = np.pi*0.6
+        u = normalize(np.array([1.0,1.0,0.0]))
+        v = normalize(np.array([1.0,-1.0,0.0]))
+
+        nodes = arc_to_nodes(C,u,v,r,phi)
+
+        for n in nodes:
+            g.add_node(n)
+        for i in range(3):
+            g.add_edge(i,i+1)
+
+    g = gr.Graph()
+    add_arc(g)
+
+    # g.add_node(np.array([0.0,0.0,0.0]))
+    # g.add_node(np.array([5.0,0.0,0.0]))
+    # g.add_edge(0,1)
+
+    def get_field(i,j):
+        A = g.nodes[i]
+        B = g.nodes[j]
+        n = normalize(np.cross(np.array([1.0,1.0,0.0]),B-A))
+
+        segment_skeleton = sk.Segment.make_segment(A,B,n)
+        return fl.SegmentField(1.0,segment_skeleton)
+
+
+    scaff = sc.Scaffolder(g)
+    scaff.min_subdivs = 16
+    scaff.compute_scaffold()
+
+    fs = [get_field(*e) for e in g.edges]
+
+    field = fl.MultiField(fs)
+
+    vis = scaff.get_axel_visualization()
+
+    mesher = ms.Mesher(scaff,field)
+    mesher.draw(vis)
+
+    vis.show()
+
 if __name__=="__main__":
-    arc_scaff()
+    # arc_scaff()
+    segment_scaff()

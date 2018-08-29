@@ -1,5 +1,4 @@
-import numpy as np
-import numpy.linalg as nal
+from skeleton import Skeleton
 import scipy.optimize as sco
 from nformulas import *
 
@@ -7,15 +6,19 @@ from nformulas import *
 class Field(object):
     """docstring for Field"""
 
-    def __init__(self, R, skel, a, b, c, gsl_ws_size=100, max_error=1.0e-8):
-        super(Field, self).__init__()
-        self.R = R
+    def __init__(self, R, skel, gsl_ws_size=100, max_error=1.0e-8):
+
+        assert isinstance(skel,Skeleton),"<skel> must be an instace of Skeleton class"
+
+        self.R = float(R)
         self.skel = skel
-        self.a = np.array(a)
-        self.b = np.array(b)
-        self.c = np.array(c)
-        self.n = gsl_ws_size
-        self.e = max_error
+        self.gsl_ws_size = int(gsl_ws_size)
+        self.max_error = float(max_error)
+
+        self.l = skel.l
+        self.a = skel.a
+        self.b = skel.b
+        self.c = skel.c
 
 
     def eval(self, X):
@@ -78,52 +81,44 @@ class Field(object):
                 max_iters -= 1
 
             if max_iters<=0:
-                raise ValueError('Is not possible to find the intersection point within tolerance tol=%s, Q=%s and vector m=%s' % (tol,Q,m))
+                raise ValueError("It is not possible to find the intersection point within tolerance tol={}, Q={} and vector m={}".format(tol,Q,m))
             else:
                 return T
 
 class SegmentField(Field):
 
-    def __init__(self, R, segment, normal, a, b, c, gsl_ws_size=100, max_error=1.0e-8):
-        super(SegmentField,self).__init__(R,segment,a,b,c,gsl_ws_size,max_error)
+    def __init__(self, R, segment, gsl_ws_size=100, max_error=1.0e-8):
+        super(SegmentField,self).__init__(R,segment,gsl_ws_size,max_error)
 
         self.P = segment.P
-        self.T = segment.n
-        self.N = normal
-        self.l = segment.l
-
-        if not np.isclose(np.dot(self.T,self.N),0.0):
-            raise ValueError("Tangent {} and normal {} are not perpendicular".format(self.T,self.N))
+        self.T = segment.v
+        self.N = segment.get_normal_at(0)
 
     def eval(self, X):
-        return compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.R,self.n,self.e)
+        return compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.R,self.gsl_ws_size,self.max_error)
 
 
 class ArcField(Field):
 
-    def __init__(self, R, arc, a, b, c, gsl_ws_size=100, max_error=1.0e-8):
-        super(ArcField,self).__init__(R,arc,a,b,c,gsl_ws_size,max_error)
+    def __init__(self, R, arc, gsl_ws_size=100, max_error=1.0e-8):
+        super(ArcField,self).__init__(R,arc,gsl_ws_size,max_error)
 
-        self.C = arc.P
-        self.u = arc.n1
-        self.v = arc.n2
+        self.C = arc.C
+        self.u = arc.u
+        self.v = arc.v
         self.r = arc.r
         self.phi = arc.phi
 
-        if not np.isclose(np.dot(self.u,self.v),0.0):
-            raise ValueError("Arc axes {} and {} are not perpendicular".format(self.u,self.v))
-
     def eval(self, X):
-        #print arc_compact_field_eval(X,np.array([0.0,0.0,0.0],5.0,))
-        return arc_compact_field_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.R,self.n,self.e)
+        return arc_compact_field_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.R,self.gsl_ws_size,self.max_error)
 
 
 class MultiField(Field):
 
-    def __init__(self, *fields):
-        super(MultiField, self).__init__(max([f.R for f in fields]),None)
+    def __init__(self, fields):
 
         self.fields = fields
+        self.R = max(f.R for f in fields)
 
     def __getitem__(self, i):
         return self.fields[i]
