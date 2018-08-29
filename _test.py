@@ -117,7 +117,7 @@ def combined_scaff():
 
 
     scaff = sc.Scaffolder(g)
-    scaff.min_subdivs = 16
+    scaff.min_subdivs = 40
     scaff.compute_scaffold()
 
     fs = [get_field(*e) for e in g.edges]
@@ -131,6 +131,7 @@ def combined_scaff():
     vis = scaff.get_axel_visualization()
 
     mesher = ms.Mesher(scaff,field)
+    mesher.quads_num = 50
     mesher.draw(vis)
 
     vis.show()
