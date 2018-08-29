@@ -2,6 +2,7 @@ import collections as co
 import time
 import re
 import subprocess as sp
+import os
 
 import numpy as np
 import numpy.linalg as nla
@@ -334,8 +335,8 @@ class Scaffolder(object):
 
         self.read_solution()
 
-        # os.remove("lp.mod")
-        # os.remove("lp.sol")
+        os.remove("lp.mod")
+        os.remove("lp.sol")
 
     def iterate_articulations_for_cells(self):
         """Returns a generator that iterates over the articulations returning a pair
@@ -468,7 +469,7 @@ class Scaffolder(object):
         n1 = None
         #if the connected node is also dangling
         #or we are not interested in symmetries
-        if self.graph.is_dangling(j) or not self.symmetric:
+        if self.graph.is_dangling(j):
             #generate random normal direction
             n1 = np.random.rand(3)
             n1 = np.cross(n,n1)
@@ -564,9 +565,14 @@ class Scaffolder(object):
             # print edge,self.links[edge]
 
     def get_axel_visualization(self):
+        vis = visual.get_axel_visualization()
+        self.draw(vis)
+        return vis
+
+    def draw(self,vis):
         g = self.graph
         s = self
-        vis = visual.VisualizationAxel()
+
         vis.add_points(g.nodes,name="extremities",color=visual.black)
         for i,j in g.edges:
             vis.add_polyline([g.nodes[i],g.nodes[j]],color=visual.red,name="skeleton")

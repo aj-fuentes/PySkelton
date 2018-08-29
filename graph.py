@@ -2,6 +2,7 @@ import numpy as np
 import numpy.linalg as nla
 import re
 
+from _math import *
 
 class Graph(object):
     """Graph input to scaffolder"""
@@ -10,6 +11,8 @@ class Graph(object):
         self.nodes = []
         self.edges = []
         self.incident_edges = []
+        self.arcs = []
+        self.arc_edges = set()
 
     def add_node(self,point):
         idx = self.find_node_from_point(point)
@@ -20,10 +23,16 @@ class Graph(object):
         return idx
 
     def add_edge(self,i,j):
-        edge = (i,j) if i<j else (j,i)
+        edge = make_edge(i,j)
         self.edges.append(edge)
         self.incident_edges[i].append(edge)
         self.incident_edges[j].append(edge)
+
+    def add_arc(self,arc_nodes_idxs):
+        self.arcs.append(arc_nodes_idxs)
+        for i in range(len(arc_nodes_idxs)-1):
+            e = make_edge(arc_nodes_idxs[i],arc_nodes_idxs[i+1])
+            self.arc_edges.add(e)
 
     def is_joint(self, i):
         return len(self.incident_edges[i])>2
@@ -33,6 +42,9 @@ class Graph(object):
 
     def is_articulation(self, i):
         return len(self.incident_edges[i])==2
+
+    def is_arc_edge(self, e):
+        return make_edge(*e) in self.arc_edges
 
     def save_to_skel_file(self,fname):
         with open(fname,"wt") as f:
@@ -54,7 +66,7 @@ class Graph(object):
         return [i for i in range(len(self.nodes)) if self.is_articulation(i)]
 
     def get_dangling_indices(self):
-        return [i for i in range(len(self.nodes)) if self.is_dangling(i)]
+        return filter(self.is_dangling,range(len(self.nodes))) # [i for i in range(len(self.nodes)) if self.is_dangling(i)]
 
     def find_node_from_point(self, p):
         for i,q in enumerate(self.nodes):
@@ -85,29 +97,18 @@ class Graph(object):
         self.nodes = []
         self.edges = []
         self.incident_edges = []
-        spc = re.compile("\s+")
-        init_spc = re.compile("^\s+")
-        rnodes = False
-        redges = False
+
+        reading = None
         with open(fname,"rt") as f:
             for line in f:
-                line = init_spc.sub("",line)
-                line = spc.sub(" ",line)
-                if line:
-                    if line[:5]=="nodes":
-                        rnodes = True
-                        redges = not rnodes
-                    elif line[:5]=="edges":
-                        redges = True
-                        rnodes = not redges
-                    else:
-                        if rnodes:
-                            x,y,z = map(float,line.split())
-                            p = np.array([x,y,z])
-                            ni = self.add_node(p)
-                            # print "node %d %f %f %f" % (ni,x,y,z)
-                        elif redges:
-                            i,j = map(int,line.split())
-                            if j<i: i,j = j,i
-                            # print "edge %d %d" % (i,j)
-                            self.add_edge(i,j)
+                line = line.strip()
+                if not line or line[0]=="#": continue
+                if line=="nodes" or line=="edges" or line=="arcs":
+                    reading=line
+                elif reading=="nodes":
+                    self.add_node(np.fromstring(line,sep=" "))
+                elif reading=="edges":
+                    self.add_edge(*map(int,line.split()))
+                elif reading=="arcs":
+                    self.add_arc(map(int,line.split()))
+

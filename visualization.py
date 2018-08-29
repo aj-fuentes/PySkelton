@@ -27,6 +27,15 @@ try:
 except:
     print "No vtk in your system"
 
+def get_axel_visualization():
+    return VisualizationAxel()
+
+def _verify_color(color):
+    if isinstance(color,str):
+        return globals()[color]
+    else:
+        return color
+
 class Visualization(object):
 
     def __init__(self):
@@ -42,6 +51,7 @@ class Visualization(object):
         self.subdivision_number = n
 
     def add_mesh(self, mesh_points, mesh_facets, color=[0,0,255], name=None):
+        color = _verify_color(color)
         if name is None:
             name = "Mesh%d" % len(self.meshes)
         if name in self.meshes.keys():
@@ -62,6 +72,7 @@ class Visualization(object):
             self.normals[name] = list(normals)
 
     def add_polyline(self, poly_points, color=[255,0,0], name=None):
+        color = _verify_color(color)
         if name is None:
             name = "Polyline%d" % len(self.polylines)
         if name in self.polylines.keys():
@@ -71,6 +82,7 @@ class Visualization(object):
             self.polylines[name] = (list(poly_points), [len(poly_points)], list(color) )
 
     def add_points(self, points, color=[0,255,0], name=None):
+        color = _verify_color(color)
         if name is None:
             name = "Points%d" % len(self.points)
 
