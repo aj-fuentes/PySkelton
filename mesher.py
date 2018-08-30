@@ -45,31 +45,45 @@ class Mesher(object):
         self.parallel_ray_shooting = True
         self.parallel_piece_computing = False
 
-    def draw(self,vis):
+
+        self.line_ps = []
+        self.arc_ps = []
+        self.dangling_ps = []
+
+
+    def compute(self):
         es = [edge for edge in self.scaff.graph.edges if not self.scaff.graph.is_arc_edge(edge)]
         arcs = self.scaff.graph.arcs
 
-        line_ps = []
-        if self.parallel_piece_computing:
-            args = itertools.izip(itertools.repeat(self),es)
-            line_ps = self.workers_pool2.map(_compute_line_piece,args)
-        else:
-            line_ps = [self.compute_line_piece(edge) for edge in es]
+        if not self.line_ps:
+            if self.parallel_piece_computing:
+                args = itertools.izip(itertools.repeat(self),es)
+                self.line_ps = self.workers_pool2.map(_compute_line_piece,args)
+            else:
+                self.line_ps = [self.compute_line_piece(edge) for edge in es]
 
-        arc_ps = []
-        if self.parallel_piece_computing:
-            args = itertools.izip(itertools.repeat(self),arcs)
-            line_ps = self.workers_pool2.map(_compute_arc_piece,args)
-        else:
-            arc_ps = [self.compute_arc_piece(arc) for arc in arcs ]
-        # dangling_ps = [self.compute_dangling_piece(i) for i in self.scaff.graph.get_dangling_indices()]
+        if not self.arc_ps:
+            if self.parallel_piece_computing:
+                args = itertools.izip(itertools.repeat(self),arcs)
+                self.arc_ps = self.workers_pool2.map(_compute_arc_piece,args)
+            else:
+                self.arc_ps = [self.compute_arc_piece(arc) for arc in arcs ]
 
-        for ps in line_ps:
+        # if not self.dangling_ps:
+            # self.dangling_ps = [self.compute_dangling_piece(i) for i in self.scaff.graph.get_dangling_indices()]
+
+    def draw(self,vis):
+
+        self.compute()
+
+        for ps in self.line_ps:
             self.draw_piece(vis,ps)
-        for ps in arc_ps:
+        for ps in self.arc_ps:
             self.draw_piece(vis,ps)
-        # for ps in dangling_ps:
+        # for ps in self.dangling_ps:
         #     self.draw_piece(vis,ps)
+
+        return vis
 
 
     def shoot_ray_parallel(self,data):
@@ -83,7 +97,7 @@ class Mesher(object):
         return self.workers_pool.map(_shoot_ray,args)
 
     def shoot_ray(self,data):
-        return [self.field.shoot_ray(Q,v,self.level_set,self.double_distance) for (v,Q) in data]
+        return [self.field.shoot_ray(Q,v,self.level_set,self.shoot_double_distance) for (v,Q) in data]
 
     def draw_piece(self,vis,ps):
 

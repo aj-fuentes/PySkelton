@@ -6,6 +6,8 @@ import mesher as ms
 import skeleton as sk
 import field as fl
 
+import cProfile
+
 def arc_scaff():
 
     C = np.array([0.4,-3.0,10.0])
@@ -132,7 +134,12 @@ def combined_scaff():
 
     mesher = ms.Mesher(scaff,field)
     mesher.quads_num = 50
+    mesher.parallel_ray_shooting = False
+
+    # cProfile.runctx("mesher.compute()",globals(),locals())
+
     mesher.draw(vis)
+
 
     vis.show()
 

@@ -6,6 +6,9 @@
 #include <gsl/gsl_block.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_roots.h>
 
 
 //dot product
@@ -81,3 +84,79 @@ double compact_field_eval(double *X, double *P, double *T, double *N, double l, 
     return val;
 }
 
+/**
+  Numerical computation of the roots of field(Q)=level_set
+**/
+struct shooting_params {
+    double *Q; //base point for shooting
+    double *m; //direction to shoot
+    double ls; //level set
+    //below the params for the field_eval function
+    double *P;
+    double *T;
+    double *N;
+    double l;
+    double *a;
+    double *b;
+    double *c;
+    double R;
+    unsigned int n;
+    double max_err;
+};
+
+double shoot_field_function(double t, void *ps) {
+    struct shooting_params * params = (struct shooting_params *) ps;
+    double *Q = params->Q;
+    double *m = params->m;
+    double ls = params->ls;
+
+    double X[3] = { Q[0] + t*m[0],
+                    Q[1] + t*m[1],
+                    Q[2] + t*m[2]
+                };
+
+    return compact_field_eval(X,params->P,params->T,params->N,params->l,params->a,params->b,params->c,params->R,params->n,params->max_err)-ls;
+}
+
+double shoot_ray(double *Q, double *m, double ls, int max_iters, double *P, double *T, double *N, double l, double *a, double *b, double *c, double R, unsigned int n, double max_err) {
+
+    //define the parameters for the shooting funtion
+    struct shooting_params params = {Q, m, ls, P, T, N, l, a, b, c, R, n, max_err};
+
+    gsl_function F;
+
+    F.function = &shoot_field_function;
+    F.params = &params;
+
+    double low = 0.0e0, upp=R;
+    int iter = max_iters;
+    while (iter--) {
+        if (GSL_FN_EVAL(&F,upp)<=0.0e0)
+            break;
+        else {
+            low = upp;
+            upp += R;
+        }
+    }
+
+    gsl_root_fsolver *s = gsl_root_fsolver_alloc(gsl_root_fsolver_brent);
+    gsl_root_fsolver_free (s);
+    gsl_root_fsolver_set (s, &F, low, upp);
+
+    iter = 0;
+    int status;
+    do {
+        iter++;
+        status = gsl_root_fsolver_iterate(s);
+        low = gsl_root_fsolver_x_lower(s);
+        upp = gsl_root_fsolver_x_upper(s);
+        status = gsl_root_test_interval (low, upp, max_err, 0.0e0);
+    } while (status == GSL_CONTINUE && iter < max_iters);
+
+    double t = gsl_root_fsolver_root(s);
+    gsl_root_fsolver_free (s);
+
+    if(status!=GSL_SUCCESS) printf("Root not found within restrictions, returning best candidate\n");
+
+    return t;
+}
