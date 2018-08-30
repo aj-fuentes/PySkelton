@@ -45,8 +45,8 @@ double arc_integrand_function(double t, void * ps) {
     double XCuv = params->XCuv;
 
     double a = l * (-XCu*st + XCv*ct    ) / (params->a[0] * lt + params->a[1] * t);
-    double b = l * ( XCuv               ) / (params->b[0] * lt + params->b[1] * t);
-    double c = l * ( XCu*ct + XCv*st - r) / (params->c[0] * lt + params->c[1] * t);
+    double b = l * (-XCu*ct - XCv*st + r) / (params->b[0] * lt + params->b[1] * t);
+    double c = l * ( XCuv               ) / (params->c[0] * lt + params->c[1] * t);
     double d = 1.0e0 - (a * a + b * b + c * c) / (R * R);
     if (d < 0.0e0) return 0.0e0;
     else return d * d * d;

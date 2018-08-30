@@ -106,8 +106,11 @@ class Graph(object):
                 if line=="nodes" or line=="edges" or line=="arcs":
                     reading=line
                 elif reading=="nodes":
-                    self.add_node(np.fromstring(line,sep=" "))
+                    i = self.add_node(np.fromstring(line,sep=" "))
+                    if i<len(self.nodes)-1:
+                        print len(self.nodes)-1,i,line,self.nodes[i]
                 elif reading=="edges":
+                    print line
                     self.add_edge(*map(int,line.split()))
                 elif reading=="arcs":
                     self.add_arc(map(int,line.split()))

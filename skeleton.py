@@ -23,6 +23,9 @@ class Skeleton(object):
     def get_normal_at(self, t):
         raise NotImplementedError()
 
+    def get_binormal_at(self, t):
+        raise NotImplementedError()
+
     def get_frame_at(self,t):
         raise NotImplementedError()
 
@@ -45,7 +48,9 @@ class Segment(Skeleton):
         self.l = float(l)
         self.n = np.array(n)
 
-        self.F = np.matrix([v,n,np.cross(v,n)]).T
+        self.binormal = np.cross(v,n)
+
+        self.F = np.matrix([v,n,self.binormal]).T
 
     def get_point_at(self, t):
         return self.P+t*self.v
@@ -55,6 +60,9 @@ class Segment(Skeleton):
 
     def get_normal_at(self,t):
         return self.n
+
+    def get_binormal_at(self,t):
+        return self.binormal
 
     def get_frame_at(self,t):
         return self.F
@@ -91,6 +99,9 @@ class Arc(Skeleton):
 
     def get_normal_at(self, t):
         return -np.cos(t)*self.u - np.sin(t)*self.v
+
+    def get_binormal_at(self,t):
+        return self.binormal
 
     def get_frame_at(self, t):
         return np.matrix([self.get_tangent_at(t),self.get_normal_at(t),self.binormal]).T

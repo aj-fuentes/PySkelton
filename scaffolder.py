@@ -61,7 +61,7 @@ class Scaffolder(object):
         self.quad_subdiv = 1
 
         #for less subdivisions
-        self.less_subdivs = False
+        self.less_subdivs = True
         self.min_subdivs = 4
 
         #timing
