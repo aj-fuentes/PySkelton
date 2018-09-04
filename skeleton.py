@@ -12,6 +12,8 @@ class Skeleton(object):
         self.b = np.array(b)
         self.c = np.array(c)
 
+        self.max_dist = max(max(a),max(b),max(c))
+
         self._extremities = None
 
     def get_point_at(self, t):
@@ -28,6 +30,12 @@ class Skeleton(object):
 
     def get_frame_at(self,t):
         raise NotImplementedError()
+
+    def get_distance(self,X):
+        raise NotImplementedError()
+
+    def is_close(self,X):
+        return self.get_distance(X)<=self.max_dist
 
     @property
     def extremities(self):
@@ -67,6 +75,13 @@ class Segment(Skeleton):
     def get_frame_at(self,t):
         return self.F
 
+    def get_distance(self,X):
+        u = X-self.P
+        t = np.dot(u,self.v)
+        if t<0: t = 0
+        elif t>self.l: t = self.l
+        return norm(self.get_point_at(t)-X)
+
     @staticmethod
     def make_segment(A,B,n,a=_default_radii,b=_default_radii,c=_default_radii):
         v = B-A
@@ -92,6 +107,7 @@ class Arc(Skeleton):
         self.binormal = np.cross(u,v)
 
     def get_point_at(self,t):
+        t /=self.r
         return self.C + self.r*np.cos(t)*self.u + self.r*np.sin(t)*self.v
 
     def get_tangent_at(self, t):
@@ -105,5 +121,17 @@ class Arc(Skeleton):
 
     def get_frame_at(self, t):
         return np.matrix([self.get_tangent_at(t),self.get_normal_at(t),self.binormal]).T
+
+    def get_distance(self,X):
+        y = np.dot(X-self.C,self.binormal)
+        Q = X-y*self.binormal
+        q = normalize(Q-self.C)
+        y = np.dot(q,self.u)
+        y = min(y,1.0)
+        y = max(y,-1.0)
+        t = np.arccos(y)
+        if t<0: t = 0
+        elif t>self.phi: t = self.phi
+        return norm(self.get_point_at(t*self.r)-X)
 
 

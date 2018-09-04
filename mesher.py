@@ -106,16 +106,16 @@ class Mesher(object):
         return [self.field.shoot_ray(Q,v,self.level_set,self.shoot_double_distance) for (v,Q) in data]
 
     def draw_piece(self,vis,ps):
-
         M = self.quads_num+1
         N = len(ps)/M
         fs =  fs =[[i*M + j, i*M + (j+1),((i+1)%N)*M + (j+1),((i+1)%N)*M + j ] for i in range(N) for j in range(M-1)]
 
+        suffix = str(id(ps)) if self.split_output else ""
 
-        vis.add_mesh(ps,fs,name=self.surface_name,color=self.surface_color)
+        vis.add_mesh(ps,fs,name=self.surface_name+suffix,color=self.surface_color)
 
         for i in range(N):
-            vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name,color=self.mesh_lines_color)
+            vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix,color=self.mesh_lines_color)
 
         return vis
 
@@ -191,7 +191,7 @@ class Mesher(object):
             m_ = m*Fi
             n_ = n*Fe
             data.extend( ( (((1.0-t)*m_ + t*n_) * F).A1, C+r*np.cos(t*phi)*u+r*np.sin(t*phi)*v) for t,F in zip(ts,FsT) )
-        ps = self.shoot_ray_parallel(data)
+        ps = self.shoot_ray_parallel(data) if self.parallel_ray_shooting else self.shoot_ray(data)
 
         return ps
 

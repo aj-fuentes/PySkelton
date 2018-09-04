@@ -1,7 +1,12 @@
 from skeleton import Skeleton
-import scipy.optimize as sco
+# import scipy.optimize as sco
 import nformulas as nf
+import pyroots as pr
 
+
+_pr_brent = pr.Brentq()
+_brent = lambda x,a,b: _pr_brent(x,a,b).x0
+# _brent = sco.brentq
 
 class Field(object):
     """docstring for Field"""
@@ -19,7 +24,7 @@ class Field(object):
         self.a = skel.a
         self.b = skel.b
         self.c = skel.c
-
+        self.max_r = skel.max_dist
 
     def eval(self, X):
         raise NotImplementedError()
@@ -50,7 +55,8 @@ class Field(object):
 
 
         g = lambda s: f(Q+m*s)-level_value
-        s0 = sco.brentq(g,a,b)
+        # s0 = sco.brentq(g,a,b)
+        s0 = _brent(g,a,b)
 
         ##BELOW an attempt to find the closest intersection
         # while True:
@@ -72,7 +78,7 @@ class SegmentField(Field):
         self.N = segment.get_normal_at(0)
 
     def eval(self, X):
-        return nf.compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.R,self.gsl_ws_size,self.max_error)
+        return nf.compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.max_r,self.R,self.gsl_ws_size,self.max_error)
 
 
 class ArcField(Field):
@@ -87,7 +93,7 @@ class ArcField(Field):
         self.phi = arc.phi
 
     def eval(self, X):
-        return nf.arc_compact_field_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.R,self.gsl_ws_size,self.max_error)
+        return nf.arc_compact_field_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.max_r,self.R,self.gsl_ws_size,self.max_error)
 
 
 class MultiField(Field):
@@ -104,6 +110,7 @@ class MultiField(Field):
         return self.fields.__iter__()
 
     def eval(self,X):
+        # return sum(f.eval(X) for f in self.fields if f.skel.is_close(X))
         return sum(f.eval(X) for f in self.fields)
 
     def newton_eval(self, Q, m, s):

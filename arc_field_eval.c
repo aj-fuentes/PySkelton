@@ -52,7 +52,7 @@ double arc_integrand_function(double t, void * ps) {
     else return d * d * d;
 }
 
-double arc_compact_field_eval(double *X, double *C, double r, double *u, double *v, double phi, double *a, double *b, double *c, double R, unsigned int n, double max_err) {
+double arc_compact_field_eval(double *X, double *C, double r, double *u, double *v, double phi, double *a, double *b, double *c, double max_r, double R, unsigned int n, double max_err) {
     //N=cross product u x v
     double N[3]  = {
         u[1]*v[2] - u[2]*v[1],
@@ -66,7 +66,26 @@ double arc_compact_field_eval(double *X, double *C, double r, double *u, double 
     double XCv   =  dot(XC,v);
     double XCuv  =  dot(XC,N);
 
-    double l = r*phi;
+    double Bx = r*cos(phi), By = r*sin(phi); // extremity B of the arc
+    double s = XCu*By - Bx*XCv; //signed area of triangle O(X-C)B
+
+    double d = 0.0e0; //to compte distance to the arc
+    if((XCv>0.0e0) && (s>0.0e0)) {
+        //the point is in the cone of the arc
+        //hence the projection of the point is on the arc
+        d = sqrt((XCu*XCu)+(XCv*XCv))-r;
+        d *=d;
+    } else {
+        //the point lies outside the cone of the arc
+        //thus the closest point is one of the extremities
+        double d1 =  (XCu - r)*(XCu - r)  +      XCv*XCv;
+        double d2 = (XCu - Bx)*(XCu - Bx) + (XCv-By)*(XCv -By);
+        d = d1<d2? d1:d2;
+    }
+    d += XCuv*XCuv; //normal direction component
+    if(d>(max_r*max_r*R*R)) return 0.0e0;
+
+    double l = r*phi; //arc length
 
     //define the parameters for the integrand in GSL
     struct arc_integrand_params params = {l, r, R, XCu, XCv, XCuv, a, b, c};

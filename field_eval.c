@@ -13,6 +13,7 @@
 
 //dot product
 #define dot(A,B) ((A)[0]*(B)[0] + (A)[1]*(B)[1] + (A)[2]*(B)[2])
+#define max(a,b) ((a) > (b) ? (a) : (b))
 
 
 /**
@@ -46,7 +47,7 @@ double integrand_function(double t, void * ps) {
     else return d * d * d;
 }
 
-double compact_field_eval(double *X, double *P, double *T, double *N, double l, double *a, double *b, double *c, double R, unsigned int n, double max_err) {
+double compact_field_eval(double *X, double *P, double *T, double *N, double l, double *a, double *b, double *c, double max_r, double R, unsigned int n, double max_err) {
     //B=cross product T x N
     double B[3]  = {
         T[1]*N[2] - T[2]*N[1],
@@ -59,6 +60,10 @@ double compact_field_eval(double *X, double *P, double *T, double *N, double l, 
     double XPT   =  dot(XP,T);
     double XPN   =  dot(XP,N);
     double XPB   =  dot(XP,B);
+
+    double t = (XPT>0.0e0)? ((XPT<l)? 0.0e0 : XPT-l) : XPT;
+
+    if((t*t + XPN*XPN + XPB*XPB) > (max_r*max_r*R*R)) return 0.0e0;
 
     //define the parameters for the integrand in GSL
     struct integrand_params params = {l, R, XPT, XPN, XPB, a, b, c};
@@ -87,76 +92,76 @@ double compact_field_eval(double *X, double *P, double *T, double *N, double l, 
 /**
   Numerical computation of the roots of field(Q)=level_set
 **/
-struct shooting_params {
-    double *Q; //base point for shooting
-    double *m; //direction to shoot
-    double ls; //level set
-    //below the params for the field_eval function
-    double *P;
-    double *T;
-    double *N;
-    double l;
-    double *a;
-    double *b;
-    double *c;
-    double R;
-    unsigned int n;
-    double max_err;
-};
+// struct shooting_params {
+//     double *Q; //base point for shooting
+//     double *m; //direction to shoot
+//     double ls; //level set
+//     //below the params for the field_eval function
+//     double *P;
+//     double *T;
+//     double *N;
+//     double l;
+//     double *a;
+//     double *b;
+//     double *c;
+//     double R;
+//     unsigned int n;
+//     double max_err;
+// };
 
-double shoot_field_function(double t, void *ps) {
-    struct shooting_params * params = (struct shooting_params *) ps;
-    double *Q = params->Q;
-    double *m = params->m;
-    double ls = params->ls;
+// double shoot_field_function(double t, void *ps) {
+//     struct shooting_params * params = (struct shooting_params *) ps;
+//     double *Q = params->Q;
+//     double *m = params->m;
+//     double ls = params->ls;
 
-    double X[3] = { Q[0] + t*m[0],
-                    Q[1] + t*m[1],
-                    Q[2] + t*m[2]
-                };
+//     double X[3] = { Q[0] + t*m[0],
+//                     Q[1] + t*m[1],
+//                     Q[2] + t*m[2]
+//                 };
 
-    return compact_field_eval(X,params->P,params->T,params->N,params->l,params->a,params->b,params->c,params->R,params->n,params->max_err)-ls;
-}
+//     return compact_field_eval(X,params->P,params->T,params->N,params->l,params->a,params->b,params->c,params->R,params->n,params->max_err)-ls;
+// }
 
-double shoot_ray(double *Q, double *m, double ls, int max_iters, double *P, double *T, double *N, double l, double *a, double *b, double *c, double R, unsigned int n, double max_err) {
+// double shoot_ray(double *Q, double *m, double ls, int max_iters, double *P, double *T, double *N, double l, double *a, double *b, double *c, double R, unsigned int n, double max_err) {
 
-    //define the parameters for the shooting funtion
-    struct shooting_params params = {Q, m, ls, P, T, N, l, a, b, c, R, n, max_err};
+//     //define the parameters for the shooting funtion
+//     struct shooting_params params = {Q, m, ls, P, T, N, l, a, b, c, R, n, max_err};
 
-    gsl_function F;
+//     gsl_function F;
 
-    F.function = &shoot_field_function;
-    F.params = &params;
+//     F.function = &shoot_field_function;
+//     F.params = &params;
 
-    double low = 0.0e0, upp=R;
-    int iter = max_iters;
-    while (iter--) {
-        if (GSL_FN_EVAL(&F,upp)<=0.0e0)
-            break;
-        else {
-            low = upp;
-            upp += R;
-        }
-    }
+//     double low = 0.0e0, upp=R;
+//     int iter = max_iters;
+//     while (iter--) {
+//         if (GSL_FN_EVAL(&F,upp)<=0.0e0)
+//             break;
+//         else {
+//             low = upp;
+//             upp += R;
+//         }
+//     }
 
-    gsl_root_fsolver *s = gsl_root_fsolver_alloc(gsl_root_fsolver_brent);
-    gsl_root_fsolver_free (s);
-    gsl_root_fsolver_set (s, &F, low, upp);
+//     gsl_root_fsolver *s = gsl_root_fsolver_alloc(gsl_root_fsolver_brent);
+//     gsl_root_fsolver_free (s);
+//     gsl_root_fsolver_set (s, &F, low, upp);
 
-    iter = 0;
-    int status;
-    do {
-        iter++;
-        status = gsl_root_fsolver_iterate(s);
-        low = gsl_root_fsolver_x_lower(s);
-        upp = gsl_root_fsolver_x_upper(s);
-        status = gsl_root_test_interval (low, upp, max_err, 0.0e0);
-    } while (status == GSL_CONTINUE && iter < max_iters);
+//     iter = 0;
+//     int status;
+//     do {
+//         iter++;
+//         status = gsl_root_fsolver_iterate(s);
+//         low = gsl_root_fsolver_x_lower(s);
+//         upp = gsl_root_fsolver_x_upper(s);
+//         status = gsl_root_test_interval (low, upp, max_err, 0.0e0);
+//     } while (status == GSL_CONTINUE && iter < max_iters);
 
-    double t = gsl_root_fsolver_root(s);
-    gsl_root_fsolver_free (s);
+//     double t = gsl_root_fsolver_root(s);
+//     gsl_root_fsolver_free (s);
 
-    if(status!=GSL_SUCCESS) printf("Root not found within restrictions, returning best candidate\n");
+//     if(status!=GSL_SUCCESS) printf("Root not found within restrictions, returning best candidate\n");
 
-    return t;
-}
+//     return t;
+// }
