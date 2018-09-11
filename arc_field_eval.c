@@ -23,6 +23,7 @@ struct arc_integrand_params {
     double XCv; //dot product (X-C).v
     double XCuv; //dot product (X-C).(u x v)
     double *a, *b, *c; //radii for interpolation
+    double *th; //angles for interpolation
 };
 
 /**
@@ -44,15 +45,27 @@ double arc_integrand_function(double t, void * ps) {
     double XCv = params->XCv;
     double XCuv = params->XCuv;
 
-    double a = l * (-XCu*st + XCv*ct    ) / (params->a[0] * lt + params->a[1] * t);
-    double b = l * (-XCu*ct - XCv*st + r) / (params->b[0] * lt + params->b[1] * t);
-    double c = l * ( XCuv               ) / (params->c[0] * lt + params->c[1] * t);
+    double th = (params->th[0]*lt + params->th[1]*t)/l;
+    double _cos = cos(th);
+    double _sin = sin(th);
+
+    double XCT  = -XCu*st + XCv*ct; //(X-C).T no need to rotate this after
+    double XCN0 = -XCu*ct - XCv*st; //(X-C).N
+    double XCB0 = XCuv;             //(X-C).B
+
+    //rotate by angle th both N and B
+    double XCN =  XCN0 * _cos + XCB0 * _sin;
+    double XCB = -XCN0 * _sin + XCB0 * _cos;
+
+    double a = l * ( XCT         ) / (params->a[0] * lt + params->a[1] * t);
+    double b = l * ( XCN + r*_cos) / (params->b[0] * lt + params->b[1] * t);
+    double c = l * ( XCB - r*_sin) / (params->c[0] * lt + params->c[1] * t);
     double d = 1.0e0 - (a * a + b * b + c * c) / (R * R);
     if (d < 0.0e0) return 0.0e0;
     else return d * d * d;
 }
 
-double arc_compact_field_eval(double *X, double *C, double r, double *u, double *v, double phi, double *a, double *b, double *c, double max_r, double R, unsigned int n, double max_err) {
+double arc_compact_field_eval(double *X, double *C, double r, double *u, double *v, double phi, double *a, double *b, double *c, double* th, double max_r, double R, unsigned int n, double max_err) {
     //N=cross product u x v
     double N[3]  = {
         u[1]*v[2] - u[2]*v[1],
@@ -88,7 +101,7 @@ double arc_compact_field_eval(double *X, double *C, double r, double *u, double 
     double l = r*phi; //arc length
 
     //define the parameters for the integrand in GSL
-    struct arc_integrand_params params = {l, r, R, XCu, XCv, XCuv, a, b, c};
+    struct arc_integrand_params params = {l, r, R, XCu, XCv, XCuv, a, b, c, th};
 
     gsl_function F;
     //define the integrand function for GSL

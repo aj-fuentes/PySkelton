@@ -1,6 +1,9 @@
 import scaffolder as sc
 import numpy as np
+import math
+
 from _math import *
+import biarcs
 import graph as gr
 import mesher as ms
 import skeleton as sk
@@ -19,7 +22,6 @@ def arc_scaff():
     phi = np.pi*0.6
     u = normalize(np.array([1.0,1.0,0.0]))
     v = normalize(np.array([1.0,-1.0,0.0]))
-    arc = C,u,v,r,phi
 
     g = gr.Graph()
 
@@ -36,19 +38,17 @@ def arc_scaff():
     scaff.min_subdivs = 16
     scaff.compute_scaffold()
 
-    arc_skeleton = sk.Arc(C,u,v,r,phi,[1.0,1.0],[2.0,1.0],[1.0,1.0])
-    field = fl.ArcField(1.0,arc_skeleton)
 
-    mesher = ms.Mesher(scaff,field)
-    # mesher.quads_num=1
+    a = [1.0,1.0]
+    b = [2.0,2.0]
+    c = [1.0,1.0]
+    th = [0.0,0.0]
+    th = [0.0*np.pi,0.5*np.pi]
 
-    vis = scaff.get_axel_visualization()
+    arc_skeleton = sk.Arc(C,u,v,r,phi)
+    field = fl.ArcField(1.0,arc_skeleton,a,b,c,th)
 
-    vis.add_polyline(arc_points(arc),name="arc",color="black")
-
-    mesher.draw(vis)
-
-    vis.show()
+    return g,field
 
 
 def segment_scaff():
@@ -68,13 +68,19 @@ def segment_scaff():
         g.add_edge(i,i+1)
 
 
+    a = np.array([1.0,1.0])
+    b = np.array([2.0,2.0])
+    c = np.array([1.0,1.0])
+    th = np.array([np.pi*0.5,np.pi])
+    th = np.array([0.0,0.0])
+    th = np.array([np.pi*0.5,np.pi*0.5])
     def get_field(i,j):
         A = g.nodes[i]
         B = g.nodes[j]
         n = normalize(np.cross(np.array([1.0,1.0,0.0]),B-A))
 
         segment_skeleton = sk.Segment.make_segment(A,B,n)
-        return fl.SegmentField(1.0,segment_skeleton)
+        return fl.SegmentField(1.0,segment_skeleton,a,b,c,th)
 
 
     scaff = sc.Scaffolder(g)
@@ -85,12 +91,7 @@ def segment_scaff():
 
     field = fl.MultiField(fs)
 
-    vis = scaff.get_axel_visualization()
-
-    mesher = ms.Mesher(scaff,field)
-    mesher.draw(vis)
-
-    vis.show()
+    return g,field
 
 def combined_scaff():
 
@@ -124,8 +125,8 @@ def combined_scaff():
 
     fs = [get_field(*e) for e in g.edges]
 
-    arc_skeleton = sk.Arc(C,u,v,r,phi,[1.0,1.0],[2.0,1.0],[1.0,1.0])
-    fs.append(fl.ArcField(1.0,arc_skeleton))
+    arc_skeleton = sk.Arc(C,u,v,r,phi)
+    fs.append(fl.ArcField(1.0,arc_skeleton,[1.0,1.0],[2.0,1.0],[1.0,1.0]))
 
 
     scaff = sc.Scaffolder(g)
@@ -135,19 +136,7 @@ def combined_scaff():
 
 
     field = fl.MultiField(fs)
-
-    vis = scaff.get_axel_visualization()
-
-    mesher = ms.Mesher(scaff,field)
-    mesher.quads_num = 40
-    # mesher.parallel_ray_shooting = False
-
-    # cProfile.runctx("mesher.compute()",globals(),locals())
-
-    mesher.draw(vis)
-
-
-    vis.show()
+    return g,field
 
 def dragon():
     g = gr.Graph()
@@ -168,31 +157,40 @@ def fertility():
     J = np.array([-31.0/100.0,-569.0/100.0,0.0])
     K = np.array([-5599672.0/1981557.0,-5201743.0/673467.0,0.0])
 
+    L = np.array([4278336.0/1722133.0,3788856.0/708271.0,0.0])
+    M = np.array([6260761.0/1288993.0,8005913.0/1419541.0,0.0])
+    N = np.array([5741525.0/841557.0,4636157.0/1091265.0,0.0])
+
     ds = [
+        (A,C,J), #legs
         (B,A,F),#baby
-        (E,B,G),#head
+        (L,B,G),#baby neck
+        (E,N,G),#mother neck
         (D,E,H),#back
         (D,A,K),#middle
         # (C,D,I),#floor
-        (A,C,J) #legs
     ]
 
+    a = [1.0,1.0]
+
     bb = [
+        [1.0,1.8],#legs
         [1.2,1.2],#baby
-        [1.2,1.2],#head
+        [0.8,0.8],#baby neck
+        [0.8,0.8],#mother neck
         [1.8,1.5],#back
-        [2.5,1.0],#middle
+        [2.5,1.0] #middle
         # [1.2,1.2],#floor
-        [1.0,1.8] #legs
     ]
 
     cc = [
+        [1.0,2.8],#legs
         [1.5,1.2],#baby
-        [0.9,0.9],#head
+        [0.8,0.8],#baby neck
+        [0.8,0.8],#mother neck
         [1.6,1.5],#back
-        [2.3,1.0],#middle
+        [2.3,1.0] #middle
         # [3.0,3.0],#floor
-        [1.0,2.8] #legs
     ]
 
 
@@ -209,11 +207,21 @@ def fertility():
         w = normalize(A1-Ce)
         phi = np.arccos(np.dot(w,u))
 
+        print r
+
         arcs.append((Ce,u,v,r,phi))
 
     g = gr.Graph()
     fs = []
-    a = [1.0,1.0]
+    #floor part
+    g.add_node(D)
+    g.add_node(C)
+    g.add_edge(0,1)
+    fs.append(fl.SegmentField(1.0,sk.Segment.make_segment(D,C,z,),a,[3.0,3.0],[1.2,1.2]))
+
+    #node for the heads
+    g.add_node(M) #idnex 2
+
     for arc,b,c in zip(arcs,bb,cc):
         ni = [g.add_node(n) for n in arc_to_nodes(*arc)]
         g.add_edge(ni[0],ni[1])
@@ -221,27 +229,67 @@ def fertility():
         g.add_edge(ni[2],ni[3])
         g.add_arc(ni)
         C,u,v,r,phi = arc
-        fs.append(fl.ArcField(1.0,sk.Arc(C,u,v,r,phi,a,b,c)))
+        fs.append(fl.ArcField(1.0,sk.Arc(C,u,v,r,phi),a,b,c))
 
-    #floor part
-    g.add_edge(7,14)
-    fs.append(fl.SegmentField(1.0,sk.Segment.make_segment(g.nodes[7],g.nodes[14],z,a,[3.0,3.0],[1.2,1.2])))
+    #baby head
+    g.add_edge(2,g.find_node_from_point(L))
+    fs.append(fl.SegmentField(1.0,sk.Segment.make_segment(M,L,z),[0.5,1.0],[1.1,1.1],[1.3,1.3]))
+
+    #mother head
+    g.add_edge(2,g.find_node_from_point(N))
+    fs.append(fl.SegmentField(1.0,sk.Segment.make_segment(M,N,z),[0.5,1.0],[1.1,1.1],[1.3,1.3]))
 
     field = fl.MultiField(fs)
 
-    # vis = visual.VisualizationAxel()
+    return g,field
 
-    # for i,j in g.edges:
-    #     vis.add_polyline([g.nodes[i],g.nodes[j]],name="skel",color="red")
+def knot():
+    #Knot curve
+    gamma = lambda t: np.array([
+            -10*np.cos(t)-2*np.cos(5*t)+15*math.sin(2*t),
+            -15*np.cos(2*t)+10*math.sin(t)-2*math.sin(5*t),
+            10*np.cos(3*t)
+            ])
+    def gammat(t):
+        v = np.array([
+            #-10*np.cos(t) -2* np.cos(5*t)+ 15*math.sin(2*t),
+            10*math.sin(t) +10*math.sin(5*t)+ 30*np.cos(2*t),
+            #-15*np.cos(2*t)+10*math.sin(t)-2*math.sin(5*t),
+            30*math.sin(2*t)+10*np.cos(t)-10*np.cos(5*t),
+            #10*np.cos(3*t)
+            -30*math.sin(3*t)])
+        v /= nla.norm(v)
+        return v
+    t0,t1 = .0,2*np.pi
 
-    # vis.show()
+    #compute biarcs approximation
+    num_samples = 20
+    aa = biarcs.biarcs_from_curve(gamma,gammat,t0,t1,num_samples)
 
+    g = gr.Graph()
+    fs = []
+    a = np.array([1.0,1.0])
+    b = np.array([1.0,1.0])
+    c = np.array([1.0,1.0])
+    el = 0.5/float(len(aa))
+    for i,(C,u,v,r,phi) in enumerate(aa):
+        ni = [g.add_node(n) for n in arc_to_nodes(C,u,v,r,phi)]
+        g.add_edge(ni[0],ni[1])
+        g.add_edge(ni[1],ni[2])
+        g.add_edge(ni[2],ni[3])
+        g.add_arc(ni)
+        fs.append(fl.ArcField(1.0,sk.Arc(C,u,v,r,phi),a,b-(el*i),c+(el*i)))
+    field = fl.MultiField(fs)
+
+    return g,field
+
+def compute(g,field):
     scaff = sc.Scaffolder(g)
-    scaff.min_subdivs = 20
+    scaff.min_subdivs = 10
     mesher = ms.Mesher(scaff,field)
-    mesher.quads_num = 50
-    mesher.split_output = True
-    # mesher.parallel_ray_shooting = False
+    mesher.quads_num = 8
+    # mesher.split_output = True
+    mesher.parallel_ray_shooting = False
 
     scaff.compute_scaffold()
     vis = scaff.get_axel_visualization()
@@ -267,4 +315,9 @@ if __name__=="__main__":
     # segment_scaff()
     # combined_scaff()
     # dragon()
-    fertility()
+    # fertility()
+    # compute(*fertility())
+    # compute(*combined_scaff())
+    # compute(*segment_scaff())
+    # compute(*arc_scaff())
+    compute(*knot())

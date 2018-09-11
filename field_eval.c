@@ -26,6 +26,7 @@ struct integrand_params {
     double XPN; //dot product (X-P).N
     double XPB; //dot product (X-P).B
     double *a, *b, *c; //radii for interpolation
+    double *th; //angle for interpolation
 };
 
 /**
@@ -39,15 +40,22 @@ double integrand_function(double t, void * ps) {
     double lt = l - t;
     double R = params->R;
 
+    double th = (params->th[0]*lt + params->th[1]*t)/l;
+    double _cos = cos(th);
+    double _sin = sin(th);
+
+    double XPN =  params->XPN * _cos + params->XPB * _sin;
+    double XPB = -params->XPN * _sin + params->XPB * _cos;
+
     double a = l * (params->XPT - t) / (params->a[0] * lt + params->a[1] * t);
-    double b = l * (params->XPN) / (params->b[0] * lt + params->b[1] * t);
-    double c = l * (params->XPB) / (params->c[0] * lt + params->c[1] * t);
+    double b = l * (XPN) / (params->b[0] * lt + params->b[1] * t);
+    double c = l * (XPB) / (params->c[0] * lt + params->c[1] * t);
     double d = 1.0e0 - (a * a + b * b + c * c) / (R * R);
     if (d < 0.0e0) return 0.0e0;
     else return d * d * d;
 }
 
-double compact_field_eval(double *X, double *P, double *T, double *N, double l, double *a, double *b, double *c, double max_r, double R, unsigned int n, double max_err) {
+double compact_field_eval(double *X, double *P, double *T, double *N, double l, double *a, double *b, double *c, double* th, double max_r, double R, unsigned int n, double max_err) {
     //B=cross product T x N
     double B[3]  = {
         T[1]*N[2] - T[2]*N[1],
@@ -66,7 +74,7 @@ double compact_field_eval(double *X, double *P, double *T, double *N, double l, 
     if((t*t + XPN*XPN + XPB*XPB) > (max_r*max_r*R*R)) return 0.0e0;
 
     //define the parameters for the integrand in GSL
-    struct integrand_params params = {l, R, XPT, XPN, XPB, a, b, c};
+    struct integrand_params params = {l, R, XPT, XPN, XPB, a, b, c, th};
 
     gsl_function F;
     //define the integrand function for GSL

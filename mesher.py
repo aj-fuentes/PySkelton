@@ -84,10 +84,10 @@ class Mesher(object):
         #     self.draw_piece(vis,ps)
 
         #normals
-        for f in self.field.fields:
-            n = f.skel.get_binormal_at(0)
-            P = f.skel.extremities[0]
-            vis.add_polyline([P,P+n],name="binormals",color="blue")
+        # for f in self.field.fields:
+        #     n = f.skel.get_binormal_at(0)
+        #     P = f.skel.extremities[0]
+        #     vis.add_polyline([P,P+n],name="binormals",color="blue")
 
         return vis
 

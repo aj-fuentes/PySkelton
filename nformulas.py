@@ -29,6 +29,7 @@ compact_field_eval.argtypes = [
     vector_2d_double, #a
     vector_2d_double, #b
     vector_2d_double, #c
+    vector_2d_double, #th
     ctypes.c_double,  #max_r
     ctypes.c_double,  #R
     ctypes.c_uint,    #n
@@ -45,6 +46,7 @@ arc_compact_field_eval.argtypes = [
     vector_2d_double, #a
     vector_2d_double, #b
     vector_2d_double, #c
+    vector_2d_double, #th
     ctypes.c_double,  #max_r
     ctypes.c_double,  #R
     ctypes.c_uint,    #n
@@ -73,6 +75,6 @@ compact_field_eval.restype = ctypes.c_double
 arc_compact_field_eval.restype = ctypes.c_double
 
 #declare documentation
-compact_field_eval.__doc__ = "double compact_field_eval(double *X, double *P, double *T, double *N, double l, double *a, double *b, double *c, double max_r, double R, size_t n, double max_err)"
-arc_compact_field_eval.__doc__ = "double arc_compact_field_eval(double *X, double *C, double r, double *u, double *v, double phi, double *a, double *b, double *c, double max_r, double R, size_t n, double max_err)"
+compact_field_eval.__doc__ = "double compact_field_eval(double *X, double *P, double *T, double *N, double l, double *a, double *b, double *c, double* th, double max_r, double R, size_t n, double max_err)"
+arc_compact_field_eval.__doc__ = "double arc_compact_field_eval(double *X, double *C, double r, double *u, double *v, double phi, double *a, double *b, double *c, double* th, double max_r, double R, size_t n, double max_err)"
 # shoot_ray.__doc__ = "double shoot_ray(double *Q, double *m, double ls, int max_iters, double tol, double *P, double *T, double *N, double l, double *a, double *b, double *c, double R, unsigned int n, double max_err)"
