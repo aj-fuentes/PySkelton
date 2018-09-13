@@ -16,7 +16,7 @@ class Field(object):
 
     def __init__(self, R, skel, a, b, c, th, gsl_ws_size=100, max_error=1.0e-8):
 
-        assert isinstance(skel,sk.Skeleton),"<skel> must be an instace of Skeleton class"
+        assert isinstance(skel,sk.Skeleton),"<skel> must be an instace of Skeleton class, current type is: {}".format(type(skel))
 
         self.R = float(R)
         self.skel = skel
@@ -97,7 +97,7 @@ class ArcField(Field):
     def __init__(self, R, arc, a=_default_radii, b=_default_radii, c=_default_radii, th=_default_angles, gsl_ws_size=100, max_error=1.0e-8):
         super(ArcField,self).__init__(R,arc,a,b,c,th,gsl_ws_size,max_error)
 
-        assert isinstance(arc,sk.Arc),"<arc> must be an instace of skeleton.Arc class"
+        assert isinstance(arc,sk.Arc),"<arc> must be an instace of skeleton.Arc class, current type is: {}".format(type(arc))
 
         self.C = arc.C
         self.u = arc.u
@@ -123,23 +123,23 @@ class G1Field(Field):
     def __init__(self, R, curve, a=_default_radii, b=_default_radii, c=_default_radii, th=_default_angles, gsl_ws_size=100, max_error=1.0e-8):
         super(G1Field,self).__init__(R,curve,a,b,c,th,gsl_ws_size,max_error)
 
-        assert isinstance(curve,sk.G1Curve),"<curve> must be an instance of skeleton.G1Curve class"
+        assert isinstance(curve,sk.G1Curve),"<curve> must be an instance of skeleton.G1Curve class, current type is: {}".format(type(curve))
 
         def convex_combination(xs,a,b,T):
-            return np.array((xs[0]*(T-a) + xs[1]*a)/T,(xs[0]*(T-b) + xs[1]*b)/T)
+            return np.array([(xs[0]*(T-a) + xs[1]*a)/T,(xs[0]*(T-b) + xs[1]*b)/T])
 
         L = curve.l
         self.fields = []
-        for angle,l,skel in zip(curve.agnles,curve.ls,curve.skels):
+        for angle,l,skel in zip(curve.angles,curve.ls,curve.skels):
             l2 = l+skel.l
             a = convex_combination(a,l,l2,L)
             b = convex_combination(b,l,l2,L)
             c = convex_combination(c,l,l2,L)
-            th = convex_combination(th+angle,l,l2,L)
+            th2 = convex_combination(th+angle,l,l2,L)
             if isinstance(skel,sk.Segment):
-                self.fields.append(SegmentField(R,skel,a,b,c,th))
+                self.fields.append(SegmentField(R,skel,a,b,c,th2))
             elif isinstance(skel,sk.Arc):
-                self.fields.append(ArcField(R,skel,a,b,c,th))
+                self.fields.append(ArcField(R,skel,a,b,c,th2))
 
     def eval(self,X):
         return sum(f.eval(X) for f in self.fields)

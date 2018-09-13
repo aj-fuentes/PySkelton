@@ -425,7 +425,7 @@ class Scaffolder(object):
             if self.graph.is_articulation(idx):
                 self.create_articulation_cell(idx,ch)
 
-        #create the cells for joints
+        #create the cells for dangling nodes
         for idx,ch in enumerate(self.chs):
             if self.graph.is_dangling(idx):
                 self.create_dangling_cell(idx,ch)
@@ -447,7 +447,6 @@ class Scaffolder(object):
             n2 /= nla.norm(n2)
 
         r = self.radii[idx]
-        # qs = [-r*np.cos(t)*n2 + r*np.sin(t)*n1 for t in np.linspace(0,phi,subdiv+1)]
         qs = [r*np.cos(t)*n2 + r*np.sin(t)*n1 for t in np.linspace(0,phi,subdiv+1)]
         for graph_edge in self.graph.incident_edges[idx]:
             self.node_cells[idx][graph_edge] = qs
@@ -486,10 +485,12 @@ class Scaffolder(object):
 
             self.node_cells[idx][graph_edge] = qs
         else:
+            ################################
             #generate a compatible normal
             # p = self.node_cells[j][graph_edge][0]
             # n1 = np.cross(np.cross(n,p),n)
             # n1 /= nla.norm(n1)
+            ################################
             #project the cell onto this one
             qs = []
             for p in self.node_cells[j][graph_edge]:

@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.linalg as nla
 from _math import *
+import math
 
 from multiprocessing import Pool
 import itertools
@@ -83,11 +84,37 @@ class Mesher(object):
         # for ps in self.dangling_ps:
         #     self.draw_piece(vis,ps)
 
+        # for skel,angle in zip(self.field.skel.skels,self.field.skel.angles):
+        #     vis.add_polyline([skel.extremities[0],skel.extremities[0]+skel.get_normal_at(0.0)],name="normals",color="blue")
+        #     vis.add_polyline([skel.extremities[1],skel.extremities[1]+skel.get_normal_at(skel.l)],name="normals",color="blue")
+
         #normals
-        # for f in self.field.fields:
-        #     n = f.skel.get_binormal_at(0)
-        #     P = f.skel.extremities[0]
-        #     vis.add_polyline([P,P+n],name="binormals",color="blue")
+        # for skel,angle in zip(self.field.skel.skels,self.field.skel.angles):
+        #     P = skel.extremities[0]
+
+        #     n = skel.get_normal_at(0.0)
+        #     b = skel.get_binormal_at(0.0)
+        #     assert np.isclose(np.dot(b,n),0.0),"Unrotated initial Normal and Binormal are not perpendicular"
+
+        #     ni =  n*math.cos(angle) + b*math.sin(angle)
+        #     bi = -n*math.sin(angle) + b*math.cos(angle)
+        #     assert np.isclose(np.dot(bi,ni),0.0),"Initial Normal and Binormal are not perpendicular"
+
+        #     vis.add_polyline([P,P+ni],name="normals",color="blue")
+        #     vis.add_polyline([P,P+bi],name="binormals",color="green")
+
+        #     P = skel.extremities[1]
+
+        #     n = skel.get_normal_at(skel.l)
+        #     b = skel.get_binormal_at(skel.l)
+        #     assert np.isclose(np.dot(b,n),0.0),"Unrotated final Normal and Binormal are not perpendicular"
+
+        #     ne =  n*math.cos(angle) + b*math.sin(angle)
+        #     be = -n*math.sin(angle) + b*math.cos(angle)
+        #     assert np.isclose(np.dot(be,ne),0.0),"Final Normal and Binormal are not perpendicular"
+        #     vis.add_polyline([P,P+ne],name="normals",color="blue")
+        #     vis.add_polyline([P,P+be],name="binormals",color="green")
+
 
         return vis
 
@@ -139,19 +166,15 @@ class Mesher(object):
 
         ts = np.linspace(0,1.0,self.quads_num+1)
 
-        # ps = []
-        # for m,n in zip(cell1,cell2):
-        #     data = [((1.0-t)*m + t*n,P + t*l*v) for t in ts]
-        #     qs = [self.field.shoot_ray(Q,u,self.level_set,double_distance=8) for u,Q in data]
-        #     ps.extend(qs)
-        # ps = np.array(ps)
-
+        #compute the shooting vectors data
         data = []
         for m,n in zip(cell1,cell2):
             data.extend( ((1.0-t)*m + t*n,P + t*l*v) for t in ts )
-        ps = self.shoot_ray_parallel(data) if self.parallel_ray_shooting else self.shoot_ray(data)
 
-        return ps
+        if self.parallel_ray_shooting:
+            return self.shoot_ray_parallel(data)
+        else:
+            return self.shoot_ray(data)
 
     def compute_arc_piece(self,arc):
 
@@ -174,28 +197,22 @@ class Mesher(object):
         Fi,Fe = Fs[0],Fs[-1]
 
         #reorder cell1 to match the links
-        idxs = self._match_arc_cells([(p*Fi).A1 for p in cell1],[(p*Fe).A1 for p in cell2])
+        idxs = self._match_cells([(p*Fi).A1 for p in cell1],[(p*Fe).A1 for p in cell2])
         cell1 = [cell1[idx] for idx in idxs]
 
-        # ps = []
-        # for m,n in zip(cell1,cell2):
-        #     m_ = m*Fi
-        #     n_ = n*Fe
-        #     data = [( (((1.0-t)*m_ + t*n_) * F).A1, C+r*np.cos(t*phi)*u+r*np.sin(t*phi)*v) for t,F in zip(ts,FsT)]
-        #     qs = [self.field.shoot_ray(Q,m,self.level_set,double_distance=self.shoot_double_distance) for m,Q in data]
-        #     ps.extend(qs)
-        # ps = np.array(ps)
-
+        #compute the shooting vectors data
         data = []
         for m,n in zip(cell1,cell2):
             m_ = m*Fi
             n_ = n*Fe
             data.extend( ( (((1.0-t)*m_ + t*n_) * F).A1, C+r*np.cos(t*phi)*u+r*np.sin(t*phi)*v) for t,F in zip(ts,FsT) )
-        ps = self.shoot_ray_parallel(data) if self.parallel_ray_shooting else self.shoot_ray(data)
 
-        return ps
+        if self.parallel_ray_shooting:
+            return self.shoot_ray_parallel(data)
+        else:
+            return self.shoot_ray(data)
 
-    def _match_arc_cells(self,cell1,cell2):
+    def _match_cells(self,cell1,cell2):
 
         min_d = np.inf
         min_i = -1
@@ -218,5 +235,3 @@ class Mesher(object):
                 reverse = True
 
         return [((-j if reverse else j)+min_i)%nn for j in idxs]
-
-

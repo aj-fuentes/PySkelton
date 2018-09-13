@@ -102,18 +102,21 @@ class Arc(Skeleton):
 
     def get_point_at(self,t):
         t /=self.r
-        return self.C + self.r*np.cos(t)*self.u + self.r*np.sin(t)*self.v
+        return self.C + self.r*math.cos(t)*self.u + self.r*math.sin(t)*self.v
 
     def get_tangent_at(self, t):
-        return -np.sin(t)*self.u + np.cos(t)*self.v
+        t /=self.r
+        return -math.sin(t)*self.u + math.cos(t)*self.v
 
     def get_normal_at(self, t):
-        return -np.cos(t)*self.u - np.sin(t)*self.v
+        t /=self.r
+        return -math.cos(t)*self.u - math.sin(t)*self.v
 
     def get_binormal_at(self,t):
         return self.binormal
 
     def get_frame_at(self, t):
+        t /=self.r
         return np.matrix([self.get_tangent_at(t),self.get_normal_at(t),self.binormal]).T
 
     def get_distance(self,X):
@@ -136,21 +139,25 @@ class G1Curve(Skeleton):
 
         for i in range(1,len(skels)):
             T0 = skels[i-1].get_tangent_at(skels[i-1].l)
-            T1 = skels[i].get_tangent_at(0)
-            assert np.isclose(nla.norm(T0-T1),0.0),"The piece # {0} breaks continuity. Last tangent {1} != new tangent {2}".format(i,T0,T1)
+            T1 = skels[i].get_tangent_at(0.0)
+            assert np.isclose(nla.norm(T0-T1),0.0),"The piece # {0} breaks continuity. Last tangent {1} != new tangent {2} (diff norm={3} )".format(i,T0,T1,nla.norm(T0-T1))
 
         self._compute_rot_angles()
 
     def _compute_rot_angles(self):
         self.angles = [0.0] #store the rotation angles
-        for i in range(len(1,self.skels)):
+        for i in range(1,len(self.skels)):
             #get the frame of previous piece at the end
+            T0 = self.skels[i-1].get_tangent_at(self.skels[i-1].l)
             N0 = self.skels[i-1].get_normal_at(self.skels[i-1].l)
             B0 = self.skels[i-1].get_binormal_at(self.skels[i-1].l)
 
-            #get the frame of current piece at the beggining
+            #get the frame of current piece at the beginning
+            T1 = self.skels[i].get_tangent_at(0.0)
             N1 = self.skels[i].get_normal_at(0.0)
             B1 = self.skels[i].get_binormal_at(0.0)
+
+            assert np.isclose(nla.norm(T0-T1),0.0),"Tangents do not coincide"
 
             #last angle
             angle = self.angles[-1]
@@ -161,6 +168,21 @@ class G1Curve(Skeleton):
             #compute the angle between the current frame and the recomputed previous normal
             angle = math.atan2(np.dot(N,B1),np.dot(N,N1))
             self.angles.append(angle)
+
+            Ne = math.cos(self.angles[-2])*N0 + math.sin(self.angles[-2])*B0
+            Ni = math.cos(self.angles[-1])*N1 + math.sin(self.angles[-1])*B1
+            assert np.isclose(nla.norm(Ne-Ni),0.0),"Frames not rotated correctly to ensure continuity"
+
+            Be = -math.sin(self.angles[-2])*N0 + math.cos(self.angles[-2])*B0
+            assert np.isclose(nla.norm(Be-np.cross(T0,Ne)),0.0),"Incorrect frame at the end"
+
+            Bi = -math.sin(self.angles[-1])*N1 + math.cos(self.angles[-1])*B1
+            assert np.isclose(nla.norm(Bi-np.cross(T1,Ni)),0.0),"Incorrect frame at the beginning"
+
+            assert np.isclose(nla.norm(Be-Bi),0.0),"Frames not rotated correctly to ensure continuity"
+
+            assert np.isclose(np.dot(Ne,Be),0.0),"Normal and Binormal are not perpendicular"
+            assert np.isclose(np.dot(Ni,Bi),0.0),"Normal and Binormal are not perpendicular"
 
     def find_piece(self,t):
         return bisect.bisect_left(self.ls,t)
@@ -189,4 +211,3 @@ class G1Curve(Skeleton):
 
     def get_distance(self,X):
         return min(skel.get_distance(X) for skel in skels)
-

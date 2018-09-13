@@ -263,7 +263,7 @@ def knot():
     t0,t1 = .0,2*np.pi
 
     #compute biarcs approximation
-    num_samples = 20
+    num_samples = 14
     aa = biarcs.biarcs_from_curve(gamma,gammat,t0,t1,num_samples)
 
     g = gr.Graph()
@@ -283,13 +283,101 @@ def knot():
 
     return g,field
 
+def knot_g1():
+    #Knot curve
+    gamma = lambda t: np.array([
+            -10*np.cos(t)-2*np.cos(5*t)+15*math.sin(2*t),
+            -15*np.cos(2*t)+10*math.sin(t)-2*math.sin(5*t),
+            10*np.cos(3*t)
+            ])
+    def gammat(t):
+        v = np.array([
+            #-10*np.cos(t) -2* np.cos(5*t)+ 15*math.sin(2*t),
+            10*math.sin(t) +10*math.sin(5*t)+ 30*np.cos(2*t),
+            #-15*np.cos(2*t)+10*math.sin(t)-2*math.sin(5*t),
+            30*math.sin(2*t)+10*np.cos(t)-10*np.cos(5*t),
+            #10*np.cos(3*t)
+            -30*math.sin(3*t)])
+        v /= nla.norm(v)
+        return v
+    t0,t1 = .0,2*np.pi
+
+    #compute biarcs approximation
+    num_samples = 20
+    aa = biarcs.biarcs_from_curve(gamma,gammat,t0,t1,num_samples)
+
+    g = gr.Graph()
+
+    arcs = []
+    for i,(C,u,v,r,phi) in enumerate(aa):
+        ni = [g.add_node(n) for n in arc_to_nodes(C,u,v,r,phi)]
+        g.add_edge(ni[0],ni[1])
+        g.add_edge(ni[1],ni[2])
+        g.add_edge(ni[2],ni[3])
+        g.add_arc(ni)
+        arc = sk.Arc(C,u,v,r,phi)
+        arcs.append(arc)
+
+    curve = sk.G1Curve(arcs)
+    n0 = curve.get_normal_at(0.0)
+    b0 = curve.get_binormal_at(0.0)
+    n1 = curve.get_normal_at(curve.l)
+
+    phi = math.atan2(np.dot(n1,b0),np.dot(n1,n0))
+
+
+    a = np.array([1.0,1.0])
+    b = np.array([2.0,2.0])
+    c = np.array([1.0,1.0])
+    th = np.array([0.0,-phi])
+    # th = np.array([0.0,0.0])
+
+    field = fl.G1Field(1.0,curve,a,b,c,th)
+
+    return g,field
+
+def g1_segments():
+
+    P = np.array([3.0,2.0,-4.0])
+    v = np.array([-2.0,2.0,4.0])
+    v/=nla.norm(v)
+    n = np.cross(v,np.array([3.0,1.0,-9.0]))
+    n/=nla.norm(n)
+
+    ls = [4.0,3.0,5.0,2.0]
+    segs = []
+    for l in ls:
+        segs.append(sk.Segment(P,v,l,n))
+        P = P + v*l
+
+    g = gr.Graph()
+    for seg in segs:
+        g.add_node(seg.extremities[0])
+    g.add_node(segs[-1].extremities[1])
+    for i in range(len(segs)):
+        g.add_edge(i,i+1)
+
+    curve = sk.G1Curve(segs)
+
+    a = np.array([1.0,1.0])
+    b = np.array([2.0,2.0])
+    c = np.array([1.0,1.0])
+    # th = np.array([0.0,-phi])
+    th = np.array([0.0,0.0])
+
+    field = fl.G1Field(1.0,curve,a,b,c,th)
+
+    return g,field
+
+
 def compute(g,field):
+
     scaff = sc.Scaffolder(g)
     scaff.min_subdivs = 10
     mesher = ms.Mesher(scaff,field)
     mesher.quads_num = 8
-    # mesher.split_output = True
-    mesher.parallel_ray_shooting = False
+    mesher.split_output = False
+    mesher.parallel_ray_shooting = True
 
     scaff.compute_scaffold()
     vis = scaff.get_axel_visualization()
@@ -320,4 +408,6 @@ if __name__=="__main__":
     # compute(*combined_scaff())
     # compute(*segment_scaff())
     # compute(*arc_scaff())
-    compute(*knot())
+    # compute(*knot())
+    # compute(*knot_g1())
+    compute(*g1_segments())
