@@ -6,28 +6,21 @@ import math
 from multiprocessing import Pool
 import itertools
 
+import skeleton as sk
+
+_extra_dist = np.array([5.0,0.0,0.0])
+
 def _shoot_ray(args):
     f,(u,Q),level_set,double_distance = args
     return f.shoot_ray(Q,u,level_set,double_distance)
 
-def _compute_line_piece(args):
-    self,edge = args
-    return self.compute_line_piece(edge)
-
-def _compute_arc_piece(args):
-    self,arc = args
-    return self.compute_arc_piece(edge)
-
-def _compute_dangling_piece(args):
-    self,i = args
-    return self.compute_dangling_piece(edge)
-
 class Mesher(object):
     """docstring for Mesher"""
-    def __init__(self, scaff, field):
+    def __init__(self, scaff, field, pieces):
         super(Mesher, self).__init__()
         self.scaff = scaff
         self.field = field
+        self.pieces = pieces
 
         self.quads_num = 8
         self.cap_quads_num = 8
@@ -46,29 +39,27 @@ class Mesher(object):
         self.parallel_ray_shooting = True
         self.parallel_piece_computing = False
 
-
-        self.line_ps = []
-        self.arc_ps = []
+        self.piece_ps = []
         self.dangling_ps = []
 
 
     def compute(self):
-        es = [edge for edge in self.scaff.graph.edges if not self.scaff.graph.is_arc_edge(edge)]
-        arcs = self.scaff.graph.arcs
+        if not self.piece_ps:
+            self.piece_ps = [self.compute_piece(skel,nodes) for skel,nodes in self.pieces]
 
-        if not self.line_ps:
-            if self.parallel_piece_computing:
-                args = itertools.izip(itertools.repeat(self),es)
-                self.line_ps = self.workers_pool2.map(_compute_line_piece,args)
-            else:
-                self.line_ps = [self.compute_line_piece(edge) for edge in es]
+        # if not self.line_ps:
+        #     if self.parallel_piece_computing:
+        #         args = itertools.izip(itertools.repeat(self),es)
+        #         self.line_ps = self.workers_pool2.map(_compute_line_piece,args)
+        #     else:
+        #         self.line_ps = [self.compute_line_piece(edge) for edge in es]
 
-        if not self.arc_ps:
-            if self.parallel_piece_computing:
-                args = itertools.izip(itertools.repeat(self),arcs)
-                self.arc_ps = self.workers_pool2.map(_compute_arc_piece,args)
-            else:
-                self.arc_ps = [self.compute_arc_piece(arc) for arc in arcs ]
+        # if not self.arc_ps:
+        #     if self.parallel_piece_computing:
+        #         args = itertools.izip(itertools.repeat(self),arcs)
+        #         self.arc_ps = self.workers_pool2.map(_compute_arc_piece,args)
+        #     else:
+        #         self.arc_ps = [self.compute_arc_piece(cpiece) for cpiece in arcs ]
 
         # if not self.dangling_ps:
             # self.dangling_ps = [self.compute_dangling_piece(i) for i in self.scaff.graph.get_dangling_indices()]
@@ -77,16 +68,39 @@ class Mesher(object):
 
         self.compute()
 
-        for ps in self.line_ps:
+        for ps in self.piece_ps:
             self.draw_piece(vis,ps)
-        for ps in self.arc_ps:
-            self.draw_piece(vis,ps)
-        # for ps in self.dangling_ps:
+
+        for skel,_ in self.pieces:
+            vis.add_polyline([skel.get_point_at(t) for t in np.linspace(0.0,skel.l,int(skel.l/0.2))],name="skel_pieces",color="blue")
+        # for ps in self.arc_ps:
+        #     self.draw_piece(vis,ps)
+        # # for ps in self.dangling_ps:
         #     self.draw_piece(vis,ps)
 
         # for skel,angle in zip(self.field.skel.skels,self.field.skel.angles):
         #     vis.add_polyline([skel.extremities[0],skel.extremities[0]+skel.get_normal_at(0.0)],name="normals",color="blue")
         #     vis.add_polyline([skel.extremities[1],skel.extremities[1]+skel.get_normal_at(skel.l)],name="normals",color="blue")
+
+
+        # normals
+        # for skel in [f.skel for f in self.field.fields]:
+        #     if not isinstance(skel,sk.Arc): continue
+        #     P = skel.extremities[0]
+        #     n = skel.get_normal_at(0.0)
+        #     b = skel.get_binormal_at(0.0)
+        #     assert np.isclose(np.dot(b,n),0.0),"Unrotated initial Normal and Binormal are not perpendicular"
+
+        #     vis.add_polyline([P,P+n],name="normals",color="red")
+        #     vis.add_polyline([P,P+b],name="binormals",color="green")
+
+        #     P = skel.extremities[1]
+        #     n = skel.get_normal_at(skel.l)
+        #     b = skel.get_binormal_at(skel.l)
+        #     assert np.isclose(np.dot(b,n),0.0),"Unrotated final Normal and Binormal are not perpendicular"
+
+        #     vis.add_polyline([P,P+n],name="normals_end",color="magenta")
+        #     vis.add_polyline([P,P+b],name="binormals_end",color="yellow")
 
         #normals
         # for skel,angle in zip(self.field.skel.skels,self.field.skel.angles):
@@ -135,7 +149,7 @@ class Mesher(object):
     def draw_piece(self,vis,ps):
         M = self.quads_num+1
         N = len(ps)/M
-        fs =  fs =[[i*M + j, i*M + (j+1),((i+1)%N)*M + (j+1),((i+1)%N)*M + j ] for i in range(N) for j in range(M-1)]
+        fs = [[i*M + j, i*M + (j+1),((i+1)%N)*M + (j+1),((i+1)%N)*M + j ] for i in range(N) for j in range(M-1)]
 
         suffix = str(id(ps)) if self.split_output else ""
 
@@ -149,63 +163,58 @@ class Mesher(object):
     def compute_dangling_piece(self,i):
         pass
 
-    def compute_line_piece(self,edge):
+    def compute_piece(self,skel,nodes):
 
-        #data for line segment
-        P = self.scaff.graph.nodes[edge[0]]
-        v = self.scaff.graph.nodes[edge[1]]-P
-        l = nla.norm(v)
-        v /= l
+        #start and ending edges for the piece
+        e1 = make_edge(nodes[0],nodes[1])
+        e2 = make_edge(nodes[-2],nodes[-1])
 
         #get cells
-        cell1 = self.scaff.node_cells[edge[0]][edge][:-1]
-        cell2 = self.scaff.node_cells[edge[1]][edge][:-1]
+        cell1 = self.scaff.node_cells[nodes[0]][e1][:-1]
+        cell2 = self.scaff.node_cells[nodes[-1]][e2][:-1]
+
+        if not np.isclose(nla.norm(self.scaff.graph.nodes[nodes[0]]-skel.extremities[0]),0.0):
+            cell1,cell2 = cell2,cell1
+
+        #compute extra data associated to the piece
+        ts = np.linspace(0.0,1.0,self.quads_num+1)
+
+        # print "GET POINT AT 0"
+        # print skel.get_point_at(0.0)
+        # print "GET POINT AT 0"
+
+        Ps = [skel.get_point_at(t*skel.l) for t in ts] #Points
+        FsT = [skel.get_frame_at(t*skel.l).transpose() for t in ts] #Frames transposed
+        Fi,Fe = skel.get_frame_at(0.0),skel.get_frame_at(skel.l) #initial and ending Frames
+
+        # print Fi
+        # print Fe
+        # print "final tangent",skel.get_tangent_at(skel.l)
+
+        #convert cells to local coordinates
+        local_cell1 = [(p*Fi).A1 for p in cell1]
+        local_cell2 = [(p*Fe).A1 for p in cell2]
+
+        #match cells (the second cell must have inverted tangent directions!)
+        idxs = self._match_cells(local_cell1,local_cell2)
 
         #reorder cell1 to match the links
-        cell1 = [cell1[idx] for idx in self.scaff.links[edge]]
-
-        ts = np.linspace(0,1.0,self.quads_num+1)
+        local_cell1 = [local_cell1[idx] for idx in idxs]
+        # cell1 = [cell1[idx] for idx in idxs]
 
         #compute the shooting vectors data
         data = []
-        for m,n in zip(cell1,cell2):
-            data.extend( ((1.0-t)*m + t*n,P + t*l*v) for t in ts )
-
-        if self.parallel_ray_shooting:
-            return self.shoot_ray_parallel(data)
-        else:
-            return self.shoot_ray(data)
-
-    def compute_arc_piece(self,arc):
-
-        #data for arc
-        C,u,v,r,phi = nodes_to_arc(*[self.scaff.graph.nodes[i] for i in arc])
-        arc_normal = np.cross(u,v)
-
-        #start and ending edges for the arc
-        e1 = make_edge(arc[0],arc[1])
-        e2 = make_edge(arc[2],arc[3])
-
-        #get cells
-        cell1 = self.scaff.node_cells[arc[0]][e1][:-1]
-        cell2 = self.scaff.node_cells[arc[3]][e2][:-1]
-
-        #compute extra data associated to the arc
-        ts = np.linspace(0,1.0,self.quads_num+1)
-        Fs = [np.matrix([-np.sin(th)*u+np.cos(th)*v,arc_normal,np.cos(th)*u+np.sin(th)*v]).transpose() for th in phi*ts] #Frames
-        FsT = [F.transpose() for F in Fs]
-        Fi,Fe = Fs[0],Fs[-1]
-
-        #reorder cell1 to match the links
-        idxs = self._match_cells([(p*Fi).A1 for p in cell1],[(p*Fe).A1 for p in cell2])
-        cell1 = [cell1[idx] for idx in idxs]
-
-        #compute the shooting vectors data
-        data = []
-        for m,n in zip(cell1,cell2):
-            m_ = m*Fi
-            n_ = n*Fe
-            data.extend( ( (((1.0-t)*m_ + t*n_) * F).A1, C+r*np.cos(t*phi)*u+r*np.sin(t*phi)*v) for t,F in zip(ts,FsT) )
+        for m,n,m2,n2 in zip(local_cell1,local_cell2,cell1,cell2):
+            # assert np.isclose(nla.norm((m*Fi*FsT[0]).A1-m),0.0),"Not inverse frames"
+            # assert np.isclose(nla.norm((n*Fe*FsT[-1]).A1-n),0.0),"Not inverse frames"
+            # print "pair",m,n
+            vecs = [normalize((1.0-t)*m + t*n) for t in ts]
+            vecs = [(v * Ft).A1 for Ft,v in zip(FsT,vecs)]
+            # print vecs[0]+Ps[0],vecs[-1]+Ps[-1]
+            # print m2+Ps[0],n2+Ps[-1]
+            # print map(nla.norm,vecs)
+            data.extend(zip(vecs,Ps))
+            # break
 
         if self.parallel_ray_shooting:
             return self.shoot_ray_parallel(data)
@@ -221,6 +230,7 @@ class Mesher(object):
         idxs = range(nn)
         reverse = False
 
+        cell2 = [p+_extra_dist for p in cell2]
         for i in idxs:
             d = sum((norm(cell2[j]-cell1[(j+i)%nn]) for j in idxs))
             if d<min_d:
@@ -233,5 +243,7 @@ class Mesher(object):
                 min_d = d
                 min_i = i
                 reverse = True
-
-        return [((-j if reverse else j)+min_i)%nn for j in idxs]
+        res = [((-j if reverse else j)+min_i)%nn for j in idxs]
+        # print min_d,[cell1[idx] for idx in res],cell2
+        # print cell1,cell2,res
+        return res

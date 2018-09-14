@@ -23,7 +23,7 @@ class Skeleton(object):
         raise NotImplementedError()
 
     def get_frame_at(self,t):
-        raise np.matrix([self.get_tangent_at(t),self.get_normal_at(t),self.get_binormal_at(t)]).T
+        return np.matrix([self.get_tangent_at(t),self.get_normal_at(t),self.get_binormal_at(t)]).T
 
     def get_distance(self,X):
         raise NotImplementedError()
@@ -34,7 +34,7 @@ class Skeleton(object):
     @property
     def extremities(self):
         if self._extremities is None:
-            self._extremities = (self.get_point_at(0),self.get_point_at(self.l))
+            self._extremities = (self.get_point_at(0.0),self.get_point_at(self.l))
         return self._extremities
 
 
@@ -115,9 +115,6 @@ class Arc(Skeleton):
     def get_binormal_at(self,t):
         return self.binormal
 
-    def get_frame_at(self, t):
-        return np.matrix([self.get_tangent_at(t),self.get_normal_at(t),self.binormal]).T
-
     def get_distance(self,X):
         y = np.dot(X-self.C,self.binormal)
         Q = X-y*self.binormal
@@ -188,23 +185,27 @@ class G1Curve(Skeleton):
 
     def get_point_at(self,t):
         i = self.find_piece(t)
-        skel,t = self.skels[i],t-self.ls[i]
+        skel = self.skels[i]
+        if i>0: t-=self.ls[i-1]
         return skel.get_point_at(t)
 
     def get_tangent_at(self, t):
         i = self.find_piece(t)
-        skel,t = self.skels[i],t-self.ls[i]
+        skel = self.skels[i]
+        if i>0: t-=self.ls[i-1]
         return skel.get_tangent_at(t)
 
     def get_normal_at(self, t):
         i = self.find_piece(t)
-        skel,t = self.skels[i],t-self.ls[i]
+        skel = self.skels[i]
+        if i>0: t-=self.ls[i-1]
         angle = self.angles[i]
         return skel.get_normal_at(t)*math.cos(angle) + skel.get_binormal_at(t)*math.sin(angle)
 
     def get_binormal_at(self,t):
         i = self.find_piece(t)
-        skel,t = self.skels[i],t-self.ls[i]
+        skel = self.skels[i]
+        if i>0: t-=self.ls[i-1]
         angle = self.angles[i]
         return -skel.get_normal_at(t)*math.sin(angle) + skel.get_binormal_at(t)*math.cos(angle)
 

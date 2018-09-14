@@ -11,8 +11,6 @@ class Graph(object):
         self.nodes = []
         self.edges = []
         self.incident_edges = []
-        self.arcs = []
-        self.arc_edges = set()
 
     def add_node(self,point):
         idx = self.find_node_from_point(point)
@@ -28,12 +26,6 @@ class Graph(object):
         self.incident_edges[i].append(edge)
         self.incident_edges[j].append(edge)
 
-    def add_arc(self,arc_nodes_idxs):
-        self.arcs.append(arc_nodes_idxs)
-        for i in range(len(arc_nodes_idxs)-1):
-            e = make_edge(arc_nodes_idxs[i],arc_nodes_idxs[i+1])
-            self.arc_edges.add(e)
-
     def is_joint(self, i):
         return len(self.incident_edges[i])>2
 
@@ -42,9 +34,6 @@ class Graph(object):
 
     def is_articulation(self, i):
         return len(self.incident_edges[i])==2
-
-    def is_arc_edge(self, e):
-        return make_edge(*e) in self.arc_edges
 
     def save_to_skel_file(self,fname):
         with open(fname,"wt") as f:
