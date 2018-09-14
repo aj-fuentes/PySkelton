@@ -116,7 +116,6 @@ class Arc(Skeleton):
         return self.binormal
 
     def get_frame_at(self, t):
-        t /=self.r
         return np.matrix([self.get_tangent_at(t),self.get_normal_at(t),self.binormal]).T
 
     def get_distance(self,X):
