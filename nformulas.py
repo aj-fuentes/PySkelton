@@ -1,5 +1,7 @@
 import ctypes
 import numpy as np
+import inspect
+import os.path
 
 #parameter types for vectors
 vector_3d_double = np.ctypeslib.ndpointer(dtype=np.double,ndim=1,shape=(3,),flags='C_CONTIGUOUS')
@@ -11,7 +13,9 @@ vector_2d_double = np.ctypeslib.ndpointer(dtype=np.double,ndim=1,shape=(2,),flag
 
 ################ NEW LIB ##############################
 
-field_eval_path = "/user/afuentes/home/Work/Convolution/code/python/package/field_eval.so"
+# field_eval_path = "/user/afuentes/home/Work/Convolution/code/python/package/field_eval.so"
+field_eval_path = os.path.dirname(os.path.abspath(inspect.getsourcefile(lambda:0))) + os.path.sep + "field_eval.so"
+
 field_eval_lib = ctypes.cdll.LoadLibrary(field_eval_path)
 
 #declare the eval fucntion in the library

@@ -484,7 +484,7 @@ def compute(g,field,pieces):
 
     mesher = ms.Mesher(scaff,field,pieces)
 
-    mesher.quads_num = 20*8
+    mesher.quads_num = 8
     mesher.split_output = False
     mesher.parallel_ray_shooting = True
 
@@ -500,12 +500,12 @@ def compute(g,field,pieces):
 
 
 if __name__=="__main__":
-    # compute(*segment_scaff())
+    compute(*segment_scaff())
     # compute(*arc_scaff())
     # compute(*combined_scaff())
     # compute(*combined_scaff2())
     # compute(*fertility())
     # compute(*knot())
-    compute(*knot_g1())
+    # compute(*knot_g1())
     # compute(*g1_segments2())
     # compute(*g1_segments())
