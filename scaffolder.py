@@ -467,7 +467,6 @@ class Scaffolder(object):
 
         n1 = None
         #if the connected node is also dangling
-        #or we are not interested in symmetries
         if self.graph.is_dangling(j):
             #generate random normal direction
             n1 = np.random.rand(3)
@@ -579,25 +578,40 @@ class Scaffolder(object):
             vis.add_polyline([g.nodes[i],g.nodes[j]],color=visual.red,name="skeleton")
         for i,av in enumerate(s.avs):
             ch,p = s.chs[i],g.nodes[i]
-            vis.add_points([v+p for v in av.values()],name="intersections")
+            #radius for current node
+            r = self.radii[i]
+            vis.add_points([r*v+p for v in av.values()],name="intersections")
             if len(av)>1:
                 for j,k in ch.edges:
-                    vis.add_polyline([av[g.incident_edges[i][j]]+p,av[g.incident_edges[i][k]]+p],color=visual.black,name="edges")
+                    vis.add_polyline([r*av[g.incident_edges[i][j]]+p,r*av[g.incident_edges[i][k]]+p],color=visual.black,name="edges")
 
 
             if len(av)>1:
                 for e in ch.edges:
                     n1,n2,phi = ch.edge_arc[e]
-                    vis.add_polyline([p + np.cos(t)*n1 + np.sin(t)*n2 for t in np.linspace(0,phi,int(phi/(2.0*np.pi)*50.0)+4)], color=visual.yellow, name="arcs")
-                    vis.add_points([p+n1,p+np.cos(phi)*n1+np.sin(phi)*n2],color=visual.blue,name="voronoi_sites")
+                    vis.add_polyline([p + r*np.cos(t)*n1 + r*np.sin(t)*n2 for t in np.linspace(0,phi,int(phi/(2.0*np.pi)*50.0)+4)], color=visual.yellow, name="arcs")
+                    vis.add_points([p+r*n1,p+r*np.cos(phi)*n1+r*np.sin(phi)*n2],color=visual.blue,name="voronoi_sites")
                     n1,n2 = ch.edge_normals[e]
+            if len(av)==1:
+                graph_edge,cell = self.node_cells[i].items()[0]
+                #recover the arc from the points of the cell
+                n1 = cell[0]-cell[1]
+                n1 /= nla.norm(n1)
+                qq = self.graph.nodes[graph_edge[0 if graph_edge[0]!=i else 1]]
+                n_ = qq-p
+                n2 = np.cross(n1,n_)
+                n2 /= nla.norm(n2)
+                assert np.isclose(np.dot(n1,n_),0.0),"Dangling cell not on the perp plane"
+                v/=nla.norm(v)
+                vis.add_polyline([p + r*np.cos(t)*n1 + r*np.sin(t)*n2 for t in np.linspace(0,2.0*np.pi)], color=visual.yellow, name="arcs")
+
 
         #plot cells
         for i,edges in enumerate(g.incident_edges):
             p = g.nodes[i]
             for edge in edges:
                 cname = ("cell %d,%d,%d" % (i,edge[0],edge[1])) if self.split_output else "cells"
-                vis.add_polyline([p+q for q in s.node_cells[i][edge]], color=visual.blue,name=cname )
+                vis.add_polyline([p+r*q for q in s.node_cells[i][edge]], color=visual.blue,name=cname )
 
 
         total_quads = 0
