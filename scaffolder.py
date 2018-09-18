@@ -588,7 +588,7 @@ class Scaffolder(object):
             if len(av)>1:
                 for e in ch.edges:
                     n1,n2,phi = ch.edge_arc[e]
-                    vis.add_polyline([p + np.cos(t)*n1 + np.sin(t)*n2 for t in np.linspace(0,phi,int(phi/(2*np.pi)*50))], color=visual.yellow, name="arcs")
+                    vis.add_polyline([p + np.cos(t)*n1 + np.sin(t)*n2 for t in np.linspace(0,phi,int(phi/(2.0*np.pi)*50.0)+4)], color=visual.yellow, name="arcs")
                     vis.add_points([p+n1,p+np.cos(phi)*n1+np.sin(phi)*n2],color=visual.blue,name="voronoi_sites")
                     n1,n2 = ch.edge_normals[e]
 
