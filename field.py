@@ -18,6 +18,8 @@ class Field(object):
 
         assert isinstance(skel,sk.Skeleton),"<skel> must be an instace of Skeleton class, current type is: {}".format(type(skel))
 
+        skel.field = self #connect the skeleton with this field
+
         self.R = float(R)
         self.skel = skel
         self.gsl_ws_size = int(gsl_ws_size)
@@ -44,10 +46,52 @@ class Field(object):
     def hessian_eval(self, X):
         raise NotImplementedError()
 
-    def shoot_ray(self, Q, m, level_value, tol=1e-7, max_iters=100):
+    def shoot_ray(self, Q, m, level_value, guess_R=None, tol=1e-7, max_iters=100):
+
+        R = self.R
+        g = lambda s: self.eval(Q+m*s)-level_value
+
+        assert g(0.0)>0.0,"Q={} is not an interior point of the surface".format(Q)
+
+
+        def find_negative_point(a,b,N=10):
+            for x in np.linspace(a,b,N,endpoint=False):
+                if g(x)<0.0:
+                    return x
+            return None
+
+        #find the initial interval
+        iters = max_iters
+        low,upp = 0.0,R
+        x = find_negative_point(low,upp)
+        while x is None:
+            low,upp = upp,upp+R
+            x = find_negative_point(low,upp)
+            iters -= 1
+            if iters==0: raise ValueError("No intersection for point Q={} and vector m={} for maximum radius R={}".format(Q,m,R))
+
+        #take es upper limit the negative point
+        upp = x
+        #with the right interval compute the root
+        upp = _brent(g,0.0,upp)
+
+        iters = max_iters
+        x = find_negative_point(0.0,upp)
+        while not (x is None):
+            # print "Searching for new root closer than {}".format(x)
+            upp = _brent(g,0.0,x)
+            x = find_negative_point(low,upp)
+            iters-=1
+            if iters==0: break
+
+        return Q+m*upp
+
+    def shoot_ray_old(self, Q, m, level_value, guess_R=None, tol=1e-7, max_iters=100):
 
         f = self.eval
         R = self.R
+        # if guess_R:
+        #     R = guess_R
         a = 0.0
         b = R
 

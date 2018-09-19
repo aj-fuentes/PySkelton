@@ -9,6 +9,7 @@ class Skeleton(object):
 
         self.l = float(l)
         self._extremities = None
+        self.field = None #to recover the field that directly uses this skeleton
 
     def get_point_at(self, t):
         raise NotImplementedError()

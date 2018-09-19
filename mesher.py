@@ -11,8 +11,8 @@ import skeleton as sk
 _extra_dist = np.array([5.0,0.0,0.0])
 
 def _shoot_ray(args):
-    f,(u,Q),level_set,double_distance = args
-    return f.shoot_ray(Q,u,level_set,double_distance)
+    f,(u,Q,guess_r),level_set,double_distance = args
+    return f.shoot_ray(Q,u,level_set,double_distance,guess_r)
 
 class Mesher(object):
     """docstring for Mesher"""
@@ -144,7 +144,7 @@ class Mesher(object):
         return self.workers_pool.map(_shoot_ray,args)
 
     def shoot_ray(self,data):
-        return [self.field.shoot_ray(Q,v,self.level_set,self.shoot_double_distance) for (v,Q) in data]
+        return [self.field.shoot_ray(Q,v,self.level_set,self.shoot_double_distance,guess_r) for (v,Q,guess_r) in data]
 
     def draw_piece(self,vis,ps):
         M = self.quads_num+1
@@ -184,6 +184,8 @@ class Mesher(object):
         # print "GET POINT AT 0"
 
         Ps = [skel.get_point_at(t*skel.l) for t in ts] #Points
+        _r = max(max(skel.field.b),max(skel.field.c))
+        rs = [_r for t in ts]
         FsT = [skel.get_frame_at(t*skel.l).transpose() for t in ts] #Frames transposed
         Fi,Fe = skel.get_frame_at(0.0),skel.get_frame_at(skel.l) #initial and ending Frames
 
@@ -213,7 +215,7 @@ class Mesher(object):
             # print vecs[0]+Ps[0],vecs[-1]+Ps[-1]
             # print m2+Ps[0],n2+Ps[-1]
             # print map(nla.norm,vecs)
-            data.extend(zip(vecs,Ps))
+            data.extend(zip(vecs,Ps,rs))
             # break
 
         if self.parallel_ray_shooting:

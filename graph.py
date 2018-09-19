@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.linalg as nla
 import re
+import collections
 
 from _math import *
 
@@ -11,6 +12,7 @@ class Graph(object):
         self.nodes = []
         self.edges = []
         self.incident_edges = []
+        self.data = collections.defaultdict(lambda: [])
 
     def add_node(self,point):
         idx = self.find_node_from_point(point)
@@ -92,15 +94,17 @@ class Graph(object):
             for line in f:
                 line = line.strip()
                 if not line or line[0]=="#": continue
-                if line=="nodes" or line=="edges" or line=="arcs":
+                if line=="nodes" or line=="edges" or line=="arcs" or line=="radii":
                     reading=line
                 elif reading=="nodes":
                     i = self.add_node(np.fromstring(line,sep=" "))
-                    if i<len(self.nodes)-1:
-                        print len(self.nodes)-1,i,line,self.nodes[i]
+                    # if i<len(self.nodes)-1:
+                    #     print len(self.nodes)-1,i,line,self.nodes[i]
                 elif reading=="edges":
-                    print line
+                    # print line
                     self.add_edge(*map(int,line.split()))
                 elif reading=="arcs":
                     self.add_arc(map(int,line.split()))
+                elif reading=="radii":
+                    self.data["radii"].append(float(line))
 

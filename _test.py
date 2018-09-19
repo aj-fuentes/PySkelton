@@ -121,7 +121,6 @@ def combined_scaff2():
     fs.append(fl.ArcField(1.0,arc,[1.0,1.0],[2.0,1.0],[1.0,1.0]))
     pieces.append((arc,[0,1,2,3]))
 
-
     A = g.nodes[0]
     B = g.nodes[i]
     n = normalize(np.cross(np.array([0.0,1.0,1.0]),B-A))
@@ -197,8 +196,31 @@ def combined_scaff():
 def dragon():
     g = gr.Graph()
     g.read_from_graph_file("/user/afuentes/home/Work/Models/Zanni/SkelExemple/Dragon.graph")
-    scaff = sc.Scaffolder(g)
-    scaff.get_axel_visualization().show()
+
+
+    fs = []
+    pieces = []
+    w = np.array([1.0,0.0,0.0])
+    for i,j in g.edges:
+        A,B = g.nodes[i],g.nodes[j]
+        n = normalize(np.cross(B-A,w))
+        seg = sk.Segment.make_segment(A,B,n)
+        rs = [g.data["radii"][i],g.data["radii"][j]]
+        fs.append(fl.SegmentField(1.0,seg,b=rs,c=rs))
+        pieces.append((seg,[i,j]))
+
+    field = fl.MultiField(fs)
+
+    # ts = np.linspace(0.0,1.0,5)
+    # for skel,(i,j) in pieces:
+    #     bb,cc = skel.field.b,skel.field.c
+    #     rs = [max(bb[0]*(1.0-t) + bb[1]*t,cc[0]*(1.0-t) + cc[1]*t) for t in ts]
+    #     print rs,g.data["radii"][i],g.data["radii"][j]
+
+    # print "------------------------"
+
+    return g,field,pieces
+
 
 def fertility():
     A = np.array([0.0,0.0,0.0])
@@ -472,10 +494,12 @@ def g1_segments2():
     return g,field,pieces
 
 
-def compute(g,field,pieces):
+def compute(g,field,pieces,min_subdivs=4,quads_num=4,split_output=False,parallel_ray_shooting=True):
 
     scaff = sc.Scaffolder(g)
-    scaff.min_subdivs = 12
+    scaff.min_subdivs = min_subdivs
+    if g.data["radii"]:
+        scaff.set_radii(g.data["radii"])
 
     s = timeit.default_timer()
     scaff.compute_scaffold()
@@ -484,9 +508,9 @@ def compute(g,field,pieces):
 
     mesher = ms.Mesher(scaff,field,pieces)
 
-    mesher.quads_num = 8
-    mesher.split_output = False
-    mesher.parallel_ray_shooting = True
+    mesher.quads_num = quads_num
+    mesher.split_output = split_output
+    mesher.parallel_ray_shooting = parallel_ray_shooting
 
     vis = scaff.get_axel_visualization()
 
@@ -500,12 +524,13 @@ def compute(g,field,pieces):
 
 
 if __name__=="__main__":
-    compute(*segment_scaff())
-    # compute(*arc_scaff())
-    # compute(*combined_scaff())
-    # compute(*combined_scaff2())
-    # compute(*fertility())
+    compute(*dragon())
+    # compute(*segment_scaff(),quads_num=20,min_subdivs=16)
+    # compute(*arc_scaff(),quads_num=20,min_subdivs=16)
+    # compute(*combined_scaff(),quads_num=20,min_subdivs=16)
+    # compute(*combined_scaff2(),quads_num=20,min_subdivs=16)
+    # compute(*fertility(),quads_num=20,min_subdivs=8)
     # compute(*knot())
-    # compute(*knot_g1())
-    # compute(*g1_segments2())
-    # compute(*g1_segments())
+    # compute(*knot_g1(),quads_num=200)
+    # compute(*g1_segments2(),quads_num=20)
+    # compute(*g1_segments(),quads_num=20)
