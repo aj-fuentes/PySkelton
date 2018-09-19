@@ -61,7 +61,7 @@ class Scaffolder(object):
         self.quad_subdiv = 1
 
         #for less subdivisions
-        self.less_subdivs = True
+        # self.less_subdivs = True
         self.min_subdivs = 4
 
         #timing
@@ -71,6 +71,10 @@ class Scaffolder(object):
 
         #cross profiles
         self.cross_profiles = set()
+
+        #limit angle for long arcs
+        self.long_arc_angle = 5.0*np.pi/6.0
+        self.long_arcs_subdiv = 2
 
 
     def compute_scaffold(self):
@@ -215,7 +219,14 @@ class Scaffolder(object):
         return equations
 
     def generate_lp_variables(self,i,ch):
-        return ["x%di%dj%d" % (i,k,l) for (k,l) in ch.edges ]
+        #general variables
+        vs = ["x%di%dj%d" % (i,k,l) for (k,l) in ch.edges]
+        #long arc variables
+        long_vs = set()
+        #dangling nodes do not qualify as long arc (they are a full cell)
+        if len(ch.points)>1:
+            long_vs = set("x%di%dj%d" % (i,e[0],e[1]) for e in ch.edges if ch.edge_arc[e][2]>self.long_arc_angle)
+        return vs,long_vs
 
     def generate_IP(self):
 
@@ -228,29 +239,27 @@ class Scaffolder(object):
                 f.write("var q, integer, >= %d;" % self.min_subdivs)
 
             #generate equation variables for minimal number of points on each cell
-            if self.less_subdivs:
-                for k in range(len(self.graph.edges)):
-                    f.write("var q%d, integer, >= %d;\n" % (k,self.min_subdivs))
+            for k in range(len(self.graph.edges)):
+                f.write("var q%d, integer, >= %d;\n" % (k,self.min_subdivs))
 
             for i,ch in enumerate(self.chs):
                 nn = len(ch.points)
-                vs = self.generate_lp_variables(i,ch)
+                vs,long_vs = self.generate_lp_variables(i,ch)
                 vars_to_display.extend(vs)
                 for var in vs:
                     #generate the definition of the variable
-                    if self.less_subdivs and not ch.planar:
-                        #test for less subdivisions
-                        f.write("var %s, integer, >= %d;\n" % (var, 1 if nn>2 else self.min_subdivs) )
+                    if not ch.planar:
+                        #define the number of subdivisions for arcs
+                        var_subdiv = 1
+                        if (var in long_vs):
+                            var_subdiv = self.long_arcs_subdiv
+                        f.write("var %s, integer, >= %d;\n" % (var, var_subdiv) )
+
                     else:
                         #arcs in dangling nodes and articulations must be divided
                         #at least 4 times the rest of joints only 2
                         f.write("var %s, integer, >= %d;\n" % (var, 2 if nn>2 else self.min_subdivs) )
 
-                    #EXPERIMENTAL
-                    #arcs with minimal subdivision of 1
-                    # if not ch.planar:
-                    #     f.write("var %s, integer, >= %d;\n" % (var, 1 if nn>2 else 3) )
-                    #END EXPERIMENTAL
 
                     #generate the terms in the objective sum
                     #dangling nodes are less expensive while the arcs in other
@@ -269,8 +278,8 @@ class Scaffolder(object):
                     f.write("s.t. edge_%d_%d_compat_reg_%d: %s = q;\n" % (i,j,j,equations[1]) )
                 else:
                     f.write("s.t. edge_%d_%d_compat_: %s = %s;\n" % (i,j,equations[0],equations[1]) )
-                    if self.less_subdivs:
-                        f.write("s.t. edge_%d_%d_compat_min_quads: %s = q%d;\n" % (i,j,equations[0],k) )
+                    #write an equation to account for the minimal number of elements in cell
+                    f.write("s.t. edge_%d_%d_compat_min_quads: %s = q%d;\n" % (i,j,equations[0],k) )
 
             if self.symmetric:
                 for idx_T in range(len(self.symmetries)):
@@ -285,9 +294,8 @@ class Scaffolder(object):
                 f.write("printf: 'quads_per_segment %d\\n', q >> 'lp.sol'; \n")
             for v in vars_to_display:
                 f.write("printf: '%s %%d\\n', %s >> 'lp.sol'; \n" % (v,v))
-            if self.less_subdivs:
-                for k in range(len(self.graph.edges)):
-                    f.write("printf: 'quads_per_segment%d %%d\\n', q%d >> 'lp.sol'; \n" % (k,k))
+            for k in range(len(self.graph.edges)):
+                f.write("printf: 'quads_per_segment%d %%d\\n', q%d >> 'lp.sol'; \n" % (k,k))
 
             f.write("end;\n")
 
