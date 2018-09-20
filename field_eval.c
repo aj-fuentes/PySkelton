@@ -94,7 +94,7 @@ double compact_field_eval(double *X, double *P, double *T, double *N, double l, 
     //free GSL workspace
     gsl_integration_workspace_free(ws);
 
-    return val;
+    return val/R;
 }
 
 /**

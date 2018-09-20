@@ -7,7 +7,7 @@ import numpy as np
 _default_radii = np.ones(2,dtype=float)
 _default_angles = np.zeros(2,dtype=float)
 
-_pr_brent = pr.Brentq()
+_pr_brent = pr.Brentq(epsilon=1e-6,raise_on_fail=False)
 _brent = lambda x,a,b: _pr_brent(x,a,b).x0
 # _brent = sco.brentq
 

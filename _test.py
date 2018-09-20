@@ -14,6 +14,7 @@ import cProfile
 import timeit
 import vmprof
 import pstats
+import scipy.optimize as sop
 
 def arc_scaff():
 
@@ -198,15 +199,37 @@ def dragon():
     g.read_from_graph_file("/user/afuentes/home/Work/Models/Zanni/SkelExemple/Dragon.graph")
 
 
+    def find_fitting(seg,ri,rf):
+        A,B = seg.extremities
+        n = seg.get_normal_at(0.0)
+        rs = np.array([ri,rf])
+        def dist(k):
+            f = fl.SegmentField(seg.l/5.0,seg,b=k*rs,c=k*rs)
+            QA = f.shoot_ray(A,n,0.1)
+            QB = f.shoot_ray(B,n,0.1)
+            d = (nla.norm(QA-A)-ri)**2 + (nla.norm(QB-B)-rf)**2
+            return d
+
+        sol = sop.minimize_scalar(dist,bounds=(0.1,100.0),method='bounded')
+        k = sol.x
+        print "Fitting error={} scaling factor={}".format(sol.fun,k)
+        return k*rs
+
+
     fs = []
     pieces = []
     w = np.array([1.0,0.0,0.0])
     for i,j in g.edges:
         A,B = g.nodes[i],g.nodes[j]
+        Ni,Nj = float(len(g.incident_edges[i])),float(len(g.incident_edges[j]))
+        a = [1.0/Ni,1.0/Nj]
+        a = [1.0,1.0]
         n = normalize(np.cross(B-A,w))
         seg = sk.Segment.make_segment(A,B,n)
-        rs = [g.data["radii"][i],g.data["radii"][j]]
-        fs.append(fl.SegmentField(1.0,seg,b=rs,c=rs))
+        ri,rf = g.data["radii"][i],g.data["radii"][j]
+        rs = find_fitting(seg,ri,rf)
+        print "Found fitting rs={} for {}".format(rs,[ri,rf])
+        fs.append(fl.SegmentField(seg.l/5.0,seg,a=a,b=rs,c=rs))
         pieces.append((seg,[i,j]))
 
     field = fl.MultiField(fs)

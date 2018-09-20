@@ -121,6 +121,6 @@ double arc_compact_field_eval(double *X, double *C, double r, double *u, double 
     //free GSL workspace
     gsl_integration_workspace_free(ws);
 
-    return val;
+    return val/R;
 }
 
