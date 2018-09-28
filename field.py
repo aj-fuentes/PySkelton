@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import skeleton as sk
 # import scipy.optimize as sco
 import nformulas as nf
@@ -7,7 +8,7 @@ import numpy as np
 _default_radii = np.ones(2,dtype=float)
 _default_angles = np.zeros(2,dtype=float)
 
-_pr_brent = pr.Brentq(epsilon=1e-6,raise_on_fail=False)
+_pr_brent = pr.Brentq(epsilon=1e-6)
 _brent = lambda x,a,b: _pr_brent(x,a,b).x0
 # _brent = sco.brentq
 
@@ -41,6 +42,9 @@ class Field(object):
         raise NotImplementedError()
 
     def gradient_eval(self, X):
+        raise NotImplementedError()
+
+    def parametric_gradient_eval(self, X):
         raise NotImplementedError()
 
     def hessian_eval(self, X):
@@ -135,6 +139,17 @@ class SegmentField(Field):
     def eval(self, X):
         return nf.compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
 
+    def parametric_gradient_eval(self, X):
+        # da0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,0,self.gsl_ws_size,self.max_error)
+        # da1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,1,self.gsl_ws_size,self.max_error)
+        db0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,2,self.gsl_ws_size,self.max_error)
+        db1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,3,self.gsl_ws_size,self.max_error)
+        dc0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,4,self.gsl_ws_size,self.max_error)
+        dc1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,5,self.gsl_ws_size,self.max_error)
+        # dθ0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,6,self.gsl_ws_size,self.max_error)
+        # dθ1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,7,self.gsl_ws_size,self.max_error)
+        # return np.array([da0,da1,db0,db1,dc0,dc1,dθ0,dθ1])
+        return np.array([db0,db1,dc0,dc1])
 
 class ArcField(Field):
 

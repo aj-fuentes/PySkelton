@@ -121,6 +121,6 @@ double arc_compact_field_eval(double *X, double *C, double r, double *u, double 
     //free GSL workspace
     gsl_integration_workspace_free(ws);
 
-    return val/R;
+    return val/R*2.1875e0; //adjust to get value 1.0 at extremities
 }
 

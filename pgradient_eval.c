@@ -19,7 +19,7 @@
 /**
   Numerical computation of the integral for a segment piece of the skeleton
 **/
-struct integrand_params {
+struct integrand_pgradient_params {
     double l; //length
     double R; //kernel radius
     double XPT; //dot product (X-P).T
@@ -27,14 +27,18 @@ struct integrand_params {
     double XPB; //dot product (X-P).B
     double *a, *b, *c; //radii for interpolation
     double *th; //angle for interpolation
+    int    deriv; //derivative to compute
+    // 0->a0,1->a1,2->b0,3->b1,4->c0,5->c1,6->theta0,7->theta1
 };
 
 /**
   Numerical computation of the integral for a segment piece of the skeleton
 **/
-double integrand_function(double t, void * ps) {
+double integrand_pgradient(double t, void * ps) {
 
-    struct integrand_params * params = (struct integrand_params *) ps;
+    struct integrand_pgradient_params * params = (struct integrand_pgradient_params *) ps;
+
+    int deriv = params->deriv;
 
     double l = params->l;
     double lt = l - t;
@@ -47,15 +51,51 @@ double integrand_function(double t, void * ps) {
     double XPN =  params->XPN * _cos + params->XPB * _sin;
     double XPB = -params->XPN * _sin + params->XPB * _cos;
 
-    double a = l * (params->XPT - t) / (params->a[0] * lt + params->a[1] * t);
-    double b = l * (XPN) / (params->b[0] * lt + params->b[1] * t);
-    double c = l * (XPB) / (params->c[0] * lt + params->c[1] * t);
+
+    double da = l / (params->a[0] * lt + params->a[1] * t);
+    double db = l / (params->b[0] * lt + params->b[1] * t);
+    double dc = l / (params->c[0] * lt + params->c[1] * t);
+
+    double a = (params->XPT - t) * da;
+    double b = (            XPN) * db;
+    double c = (            XPB) * dc;
+
     double d = 1.0e0 - (a * a + b * b + c * c) / (R * R);
     if (d < 0.0e0) return 0.0e0;
-    else return d * d * d;
+
+    double val = 0.0e0;
+    switch(deriv) {
+        case 0:
+            val = -2.0e0 * a * a * da * (1.0e0 - t/l);
+            break;
+        case 1:
+            val = -2.0e0 * a * a * da * (        t/l);
+            break;
+        case 2:
+            val = -2.0e0 * b * b * db * (1.0e0 - t/l);
+            break;
+        case 3:
+            val = -2.0e0 * b * b * db * (        t/l);
+            break;
+        case 4:
+            val = -2.0e0 * c * c * dc * (1.0e0 - t/l);
+            break;
+        case 5:
+            val = -2.0e0 * c * c * dc * (        t/l);
+            break;
+        case 6:
+            val =  2.0e0 * (XPB * b * db - XPN * c * dc) * (1.0e0 - t/l);
+            break;
+        case 7:
+            val =  2.0e0 * (XPB * b * db - XPN * c * dc) * (        t/l);
+            break;
+    }
+
+
+    return d * d * val;
 }
 
-double compact_field_eval(double *X, double *P, double *T, double *N, double l, double *a, double *b, double *c, double* th, double max_r, double R, unsigned int n, double max_err) {
+double compact_pgradient_eval(double *X, double *P, double *T, double *N, double l, double *a, double *b, double *c, double* th, double max_r, double R, int deriv, unsigned int n, double max_err) {
     //B=cross product T x N
     double B[3]  = {
         T[1]*N[2] - T[2]*N[1],
@@ -74,11 +114,11 @@ double compact_field_eval(double *X, double *P, double *T, double *N, double l, 
     if((t*t + XPN*XPN + XPB*XPB) > (max_r*max_r*R*R)) return 0.0e0;
 
     //define the parameters for the integrand in GSL
-    struct integrand_params params = {l, R, XPT, XPN, XPB, a, b, c, th};
+    struct integrand_pgradient_params params = {l, R, XPT, XPN, XPB, a, b, c, th, deriv};
 
     gsl_function F;
     //define the integrand function for GSL
-    F.function = &integrand_function;
+    F.function = &integrand_pgradient;
     //setup params
     F.params = &params;
 
