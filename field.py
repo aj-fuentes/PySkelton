@@ -139,17 +139,17 @@ class SegmentField(Field):
     def eval(self, X):
         return nf.compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
 
-    def parametric_gradient_eval(self, X):
-        # da0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,0,self.gsl_ws_size,self.max_error)
-        # da1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,1,self.gsl_ws_size,self.max_error)
+    def parametric_gradient_eval(self, X, vals=[0,1,2,3,4,5,6,7]):
+        da0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,0,self.gsl_ws_size,self.max_error)
+        da1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,1,self.gsl_ws_size,self.max_error)
         db0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,2,self.gsl_ws_size,self.max_error)
         db1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,3,self.gsl_ws_size,self.max_error)
         dc0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,4,self.gsl_ws_size,self.max_error)
         dc1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,5,self.gsl_ws_size,self.max_error)
-        # dθ0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,6,self.gsl_ws_size,self.max_error)
-        # dθ1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,7,self.gsl_ws_size,self.max_error)
-        # return np.array([da0,da1,db0,db1,dc0,dc1,dθ0,dθ1])
-        return np.array([db0,db1,dc0,dc1])
+        d_0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,6,self.gsl_ws_size,self.max_error)
+        d_1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,7,self.gsl_ws_size,self.max_error)
+        res = np.array([da0,da1,db0,db1,dc0,dc1,d_0,d_1])
+        return res[vals]
 
 class ArcField(Field):
 
@@ -177,6 +177,9 @@ class MultiField(Field):
     def eval(self,X):
         return sum(f.eval(X) for f in self.fields)
 
+    def parametric_gradient_eval(self, X):
+        return sum(f.eval(X) for f in self.fields)
+
 class G1Field(Field):
 
     def __init__(self, R, curve, a=_default_radii, b=_default_radii, c=_default_radii, th=_default_angles, gsl_ws_size=100, max_error=1.0e-8):
@@ -202,3 +205,17 @@ class G1Field(Field):
 
     def eval(self,X):
         return sum(f.eval(X) for f in self.fields)
+
+    def parametric_gradient_eval(self, X):
+        return sum(f.eval(X) for f in self.fields)
+
+def make_field(R, skel, a=_default_radii, b=_default_radii, c=_default_radii, th=_default_angles, gsl_ws_size=100, max_error=1.0e-8):
+    assert isinstance(skel,sk.Skeleton),"<skel> is not a skelton.Skeleton"
+    klass = None
+    if isinstance(skel,sk.Segment):
+        klass = SegmentField
+    elif isinstance(skel,sk.Arc):
+        klass = ArcField
+    elif isinstance(skel,sk.G1Curve):
+        klass = G1Field
+    return klass(R, skel, a, b, c, th, gsl_ws_size, max_error)
