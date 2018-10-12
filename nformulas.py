@@ -77,6 +77,7 @@ arc_compact_field_eval.argtypes = [
 
 #declare return type
 compact_field_eval.restype = ctypes.c_double
+compact_pgradient_eval.restype = ctypes.c_double
 arc_compact_field_eval.restype = ctypes.c_double
 
 #declare documentation

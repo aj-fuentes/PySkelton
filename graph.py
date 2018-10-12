@@ -53,6 +53,10 @@ class Graph(object):
             for i,j in self.edges:
                 f.write("%d %d \n" % (i,j) )
 
+            f.write("radii\n")
+            for r in self.data["radii"]:
+                f.write("{}\n".format(r))
+
     def get_articulation_indices(self):
         return [i for i in range(len(self.nodes)) if self.is_articulation(i)]
 

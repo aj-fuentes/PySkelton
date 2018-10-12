@@ -1,9 +1,10 @@
 # -*- coding: UTF-8 -*-
+import math
+import numpy as np
+
 import skeleton as sk
-# import scipy.optimize as sco
 import nformulas as nf
 import pyroots as pr
-import numpy as np
 
 _default_radii = np.ones(2,dtype=float)
 _default_angles = np.zeros(2,dtype=float)
@@ -219,3 +220,8 @@ def make_field(R, skel, a=_default_radii, b=_default_radii, c=_default_radii, th
     elif isinstance(skel,sk.G1Curve):
         klass = G1Field
     return klass(R, skel, a, b, c, th, gsl_ws_size, max_error)
+
+def get_radius_params(r,R,level_set,alpha):
+    term = alpha*math.pow(0.5*level_set/(alpha*alpha*alpha),7.0/2.0)
+    eigenval = ((R*R)/(r*r))*(1.0-term)
+    return eigenval

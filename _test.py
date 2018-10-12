@@ -196,7 +196,7 @@ def combined_scaff():
 
 def dragon():
     g = gr.Graph()
-    g.read_from_graph_file("/user/afuentes/home/Work/Models/Zanni/SkelExemple/Dragon.graph")
+    g.read_from_graph_file("/user/afuentes/home/Work/Models/Zanni/SkelExemple/Dragon_sym.graph")
 
 
     def find_fitting(seg,ri,rf):
@@ -241,6 +241,8 @@ def dragon():
     #     print rs,g.data["radii"][i],g.data["radii"][j]
 
     # print "------------------------"
+
+    g.sym_file = "/user/afuentes/home/Work/Models/Zanni/SkelExemple/Dragon_sym.sym"
 
     return g,field,pieces
 
@@ -517,12 +519,22 @@ def g1_segments2():
     return g,field,pieces
 
 
-def compute(g,field,pieces,min_subdivs=4,quads_num=4,split_output=False,parallel_ray_shooting=True):
+def compute(g,field,pieces,min_subdivs=4,quads_num=4,split_output=False,parallel_ray_shooting=True,regular=False):
 
     scaff = sc.Scaffolder(g)
     scaff.min_subdivs = min_subdivs
     if g.data["radii"]:
         scaff.set_radii(g.data["radii"])
+
+    try:
+        scaff.read_symmetries(g.sym_file)
+    except:
+        print "no symmetries file"
+
+    scaff.set_regular(regular)
+    # scaff.set_regular(True)
+    scaff.long_arc_angle = np.pi/2.0
+
 
     s = timeit.default_timer()
     scaff.compute_scaffold()

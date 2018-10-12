@@ -6,27 +6,24 @@
 #include <gsl/gsl_block.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_roots.h>
 
 
 //dot product
 #define dot(A,B) ((A)[0]*(B)[0] + (A)[1]*(B)[1] + (A)[2]*(B)[2])
-#define max(a,b) ((a) > (b) ? (a) : (b))
 
 
 /**
   Numerical computation of the integral for a segment piece of the skeleton
 **/
-struct integrand_pgradient_params {
+struct arc_integrand_pgradient_params {
     double l; //length
+    double r; //circle radius
     double R; //kernel radius
-    double XPT; //dot product (X-P).T
-    double XPN; //dot product (X-P).N
-    double XPB; //dot product (X-P).B
+    double XCu; //dot product (X-C).u
+    double XCv; //dot product (X-C).v
+    double XCuv; //dot product (X-C).(u x v)
     double *a, *b, *c; //radii for interpolation
-    double *th; //angle for interpolation
+    double *th; //angles for interpolation
     int    deriv; //derivative to compute
     // 0->a0,1->a1,2->b0,3->b1,4->c0,5->c1,6->theta0,7->theta1
 };
@@ -34,30 +31,46 @@ struct integrand_pgradient_params {
 /**
   Numerical computation of the integral for a segment piece of the skeleton
 **/
-double integrand_pgradient(double t, void * ps) {
+double arc_integrand_pgradient(double t, void * ps) {
 
-    struct integrand_pgradient_params * params = (struct integrand_pgradient_params *) ps;
+    struct arc_integrand_pgradient_params * params = (struct arc_integrand_pgradient_params *) ps;
 
     int deriv = params->deriv;
 
+    double r = params->r;
     double l = params->l;
     double lt = l - t;
     double R = params->R;
+
+    double st = sin(t/r);
+    double ct = cos(t/r);
+
+    double XCu = params->XCu;
+    double XCv = params->XCv;
+    double XCuv = params->XCuv;
 
     double th = (params->th[0]*lt + params->th[1]*t)/l;
     double _cos = cos(th);
     double _sin = sin(th);
 
-    double XPN =  params->XPN * _cos + params->XPB * _sin;
-    double XPB = -params->XPN * _sin + params->XPB * _cos;
+    double XCT  = -XCu*st + XCv*ct; //(X-C).T no need to rotate this after
+    double XCN0 = -XCu*ct - XCv*st; //(X-C).N
+    double XCB0 = XCuv;             //(X-C).B
+
+    //rotate by angle th both N and B
+    double XCN =  XCN0 * _cos + XCB0 * _sin;
+    double XCB = -XCN0 * _sin + XCB0 * _cos;
+
+    double XPN = XCN + r*_cos;
+    double XPB = XCB - r*_sin;
 
     double da = l / (params->a[0] * lt + params->a[1] * t);
     double db = l / (params->b[0] * lt + params->b[1] * t);
     double dc = l / (params->c[0] * lt + params->c[1] * t);
 
-    double a = (params->XPT - t) * da;
-    double b = (            XPN) * db;
-    double c = (            XPB) * dc;
+    double a = XCT * da;
+    double b = XPN * db;
+    double c = XPB * dc;
 
     double d = 1.0e0 - (a * a + b * b + c * c) / (R * R);
     if (d < 0.0e0) return 0.0e0;
@@ -92,30 +105,47 @@ double integrand_pgradient(double t, void * ps) {
     return d * d * val;
 }
 
-double compact_pgradient_eval(double *X, double *P, double *T, double *N, double l, double *a, double *b, double *c, double* th, double max_r, double R, int deriv, unsigned int n, double max_err) {
-    //B=cross product T x N
-    double B[3]  = {
-        T[1]*N[2] - T[2]*N[1],
-       -T[0]*N[2] + T[2]*N[0],
-        T[0]*N[1] - T[1]*N[0]
+double arc_compact_pgradient_eval(double *X, double *C, double r, double *u, double *v, double phi, double *a, double *b, double *c, double* th, double max_r, double R, int deriv, unsigned int n, double max_err) {
+    //N=cross product u x v
+    double N[3]  = {
+        u[1]*v[2] - u[2]*v[1],
+       -u[0]*v[2] + u[2]*v[0],
+        u[0]*v[1] - u[1]*v[0]
     };
 
-    double XP[3] = {X[0] - P[0], X[1] - P[1], X[2] - P[2]};
+    double XC[3] = {X[0] - C[0], X[1] - C[1], X[2] - C[2]};
 
-    double XPT   =  dot(XP,T);
-    double XPN   =  dot(XP,N);
-    double XPB   =  dot(XP,B);
+    double XCu   =  dot(XC,u);
+    double XCv   =  dot(XC,v);
+    double XCuv  =  dot(XC,N);
 
-    double t = (XPT>0.0e0)? ((XPT<l)? 0.0e0 : XPT-l) : XPT;
+    double Bx = r*cos(phi), By = r*sin(phi); // extremity B of the arc
+    double s = XCu*By - Bx*XCv; //signed area of triangle O(X-C)B
 
-    if((t*t + XPN*XPN + XPB*XPB) > (max_r*max_r*R*R)) return 0.0e0;
+    double d = 0.0e0; //to compte distance to the arc
+    if((XCv>0.0e0) && (s>0.0e0)) {
+        //the point is in the cone of the arc
+        //hence the projection of the point is on the arc
+        d = sqrt((XCu*XCu)+(XCv*XCv))-r;
+        d *=d;
+    } else {
+        //the point lies outside the cone of the arc
+        //thus the closest point is one of the extremities
+        double d1 =  (XCu - r)*(XCu - r)  +      XCv*XCv;
+        double d2 = (XCu - Bx)*(XCu - Bx) + (XCv-By)*(XCv -By);
+        d = d1<d2? d1:d2;
+    }
+    d += XCuv*XCuv; //normal direction component
+    if(d>(max_r*max_r*R*R)) return 0.0e0;
+
+    double l = r*phi; //arc length
 
     //define the parameters for the integrand in GSL
-    struct integrand_pgradient_params params = {l, R, XPT, XPN, XPB, a, b, c, th, deriv};
+    struct arc_integrand_pgradient_params params = {l, r, R, XCu, XCv, XCuv, a, b, c, th, deriv};
 
     gsl_function F;
     //define the integrand function for GSL
-    F.function = &integrand_pgradient;
+    F.function = &arc_integrand_pgradient;
     //setup params
     F.params = &params;
 
@@ -131,7 +161,6 @@ double compact_pgradient_eval(double *X, double *P, double *T, double *N, double
     //free GSL workspace
     gsl_integration_workspace_free(ws);
 
-    // printf("%.15f\n", val);
-
     return val/R*2.1875e0; //adjust to get value 1.0 at extremities
 }
+
