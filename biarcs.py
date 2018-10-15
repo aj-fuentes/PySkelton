@@ -99,6 +99,15 @@ def biarcs_from_curve(gamma,gammat,a,b,N):
         aa.extend(compute_biarc(A0,t0,A1,t1))
     return aa
 
+def biarcs_from_Hdata(As,vs):
+    aa = []
+    N = len(As)
+    for i in range(N-1):
+        A0,A1 = As[i],As[i+1]
+        t0,t1 = vs[i],vs[i+1]
+        aa.extend(compute_biarc(A0,t0,A1,t1))
+    return aa
+
 def plot_biarcs(aa,origin=None,vis=None):
     O = origin
     if O is None:

@@ -195,10 +195,10 @@ class G1Field(Field):
         self.fields = []
         for angle,l,skel in zip(curve.angles,curve.ls,curve.skels):
             l2 = l+skel.l
-            a = convex_combination(a,l,l2,L)
-            b = convex_combination(b,l,l2,L)
-            c = convex_combination(c,l,l2,L)
-            th2 = convex_combination(th+angle,l,l2,L)
+            a = convex_combination(self.a,l,l2,L)
+            b = convex_combination(self.b,l,l2,L)
+            c = convex_combination(self.c,l,l2,L)
+            th2 = convex_combination(self.th+angle,l,l2,L)
             if isinstance(skel,sk.Segment):
                 self.fields.append(SegmentField(R,skel,a,b,c,th2))
             elif isinstance(skel,sk.Arc):
