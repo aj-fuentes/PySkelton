@@ -24,6 +24,8 @@ class Graph(object):
 
     def add_edge(self,i,j):
         edge = make_edge(i,j)
+        if edge in self.edges:
+            return
         self.edges.append(edge)
         self.incident_edges[i].append(edge)
         self.incident_edges[j].append(edge)
