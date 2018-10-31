@@ -257,8 +257,18 @@ class Scaffolder(object):
 
                     else:
                         #arcs in dangling nodes and articulations must be divided
-                        #at least 4 times the rest of joints only 2
-                        f.write("var %s, integer, >= %d;\n" % (var, 2 if nn>2 else self.min_subdivs) )
+                        #at least min_subdivs times
+                        if nn<=2:
+                            #articulations must have at least min_subdivs
+                            f.write("var %s, integer, >= %d;\n" % (var, self.min_subdivs) )
+                        #planar-convex-hull joints must be subdivided at least 2 times
+                        #or according to the long_arc_angle
+                        else:
+                            planar_subdivs = 2
+                            #if pi quilifies as long arcs
+                            if np.pi>self.long_arc_angle:
+                                planar_subdivs = max(planar_subdivs,self.long_arcs_subdiv)
+                            f.write("var %s, integer, >= %d;\n" % (var, planar_subdivs) )
 
 
                     #generate the terms in the objective sum
@@ -651,7 +661,7 @@ class Scaffolder(object):
                 quads = [[l,(l+1)%n,(l+1)%n+n,l+n] for l in range(n)]
 
                 qname = ("quads %d,%d" % edge) if self.split_output else "quads"
-                vis.add_mesh(ps,quads,color=visual.dark_yellow,name=qname)
+                vis.add_mesh(ps,quads,color="darkolivegreen",name=qname)
 
 
             for p,q in zip(dc1,cell2):
