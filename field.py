@@ -221,7 +221,13 @@ def make_field(R, skel, a=_default_radii, b=_default_radii, c=_default_radii, th
         klass = G1Field
     return klass(R, skel, a, b, c, th, gsl_ws_size, max_error)
 
-def get_radius_params(r,R,level_set,alpha):
-    term = alpha*math.pow(0.5*level_set/(alpha*alpha*alpha),7.0/2.0)
+def get_eigenval_param(r,R,level_set,alpha):
+    term = alpha*math.pow(0.5*level_set/(alpha*alpha*alpha),2.0/7.0)
     eigenval = ((R*R)/(r*r))*(1.0-term)
     return eigenval
+
+def get_radius_param(r,R,level_set,a):
+    alpha = 1.0/(a*a)
+    term = alpha*math.pow(0.5*level_set/(alpha*alpha*alpha),2.0/7.0)
+    radius = (r/R) / math.sqrt(1.0 - term)
+    return radius

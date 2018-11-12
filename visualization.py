@@ -20,7 +20,7 @@ black       = _colors['black']
 gray        = _colors['gray']
 
 default_palette = [red,yellow,green,cyan,blue,magenta]
-pastel_palette = [[(x+200)/2 for x in color] for color in default_palette]
+pastel_palette = [_colors[k] for k in ["pink","peachpuff","lightgoldenrodyellow","palegreen","paleturquoise","lightsteelblue","thistle"]]
 dark_palette = [[(x)/2 for x in color] for color in default_palette]
 
 vtk = None

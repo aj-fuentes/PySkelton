@@ -582,9 +582,72 @@ class Scaffolder(object):
             self.links[edge] = self.pair_cells(cell1,cell2,p1,p2)
             # print edge,self.links[edge]
 
-    def get_axel_visualization(self):
+    def get_axel_visualization(self,hexahedral=False):
         vis = visual.get_axel_visualization()
-        self.draw(vis)
+        if hexahedral:
+            self.draw_hex(vis)
+        else:
+            self.draw(vis)
+        return vis
+
+    def draw_hex(self,vis):
+        g = self.graph
+
+        for edge in g.edges:
+            i,j = edge
+            cell1 = self.node_cells[i][edge][:-1]
+            cell2 = self.node_cells[j][edge][:-1]
+            p1 = g.nodes[i]
+            p2 = g.nodes[j]
+
+            idxs = self.links[edge]
+            dc1 = [cell1[idx] for idx in idxs]
+            hexs = 0
+            for k in range(len(dc1)):
+                a,d = dc1[k-1],cell2[k-1]
+                c,f = dc1[k],cell2[k]
+
+                r1 = nla.norm(a)
+                r2 = nla.norm(d)
+
+                b = a+c
+                b = (b/nla.norm(b))*r1
+                e = d+f
+                e = (e/nla.norm(e))*r2
+
+                ps = [p1,p1+a,p1+b,p1+c,p2+d,p2+e,p2+f,p2]
+                fs = [
+                    [0,1,2,3], #p1 a b c
+                    [4,5,6,7], # d e f p2
+                    [1,2,5,4], # a b e f
+                    [2,3,6,5], # b c d e
+                    [0,1,4,7], #p1 a f p2
+                    [0,3,6,7]  #p1 c d p2
+                ]
+                vis.add_mesh(ps,fs,name="hex_%d_%d_%d" % (i,j,hexs),color=visual.pastel_palette[(i+j+hexs) % len(visual.pastel_palette)])
+                hexs += 1
+
+            # if self.palette:
+            #     k = int(np.random.rand()*len(self.palette))
+            #     for i in range(n):
+            #         i2 = (i+1)%n
+            #         ps = [p1+dc1[i],p2+cell2[i],p1+dc1[i2],p2+cell2[i2]]
+            #         qname = ("quads %d,%d" % edge) + (" %d" % i)
+            #         vis.add_mesh(ps,[[0,1,3,2]],color=self.palette[(i+k) % len(self.palette)])
+            # else:
+            #     qname = ("quads %d,%d" % edge) if self.split_output else "quads"
+
+            #     ps = [p1 + q for q in dc1] + [p2 + q for q in cell2]
+            #     quads = [[l,(l+1)%n,(l+1)%n+n,l+n] for l in range(n)]
+
+            #     qname = ("quads %d,%d" % edge) if self.split_output else "quads"
+            #     vis.add_mesh(ps,quads,color=dark_yellow,name=qname)
+
+
+            for p,q in zip(dc1,cell2):
+                mname = ("mesh lines %d,%d" % edge) if self.split_output else "mesh lines"
+                vis.add_polyline([p1+p,p2+q],color="cyan",name=mname)
+
         return vis
 
     def draw(self,vis):

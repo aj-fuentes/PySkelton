@@ -211,4 +211,4 @@ class G1Curve(Skeleton):
         return -skel.get_normal_at(t)*math.sin(angle) + skel.get_binormal_at(t)*math.cos(angle)
 
     def get_distance(self,X):
-        return min(skel.get_distance(X) for skel in skels)
+        return min(skel.get_distance(X) for skel in self.skels)
