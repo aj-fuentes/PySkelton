@@ -687,12 +687,10 @@ class Scaffolder(object):
                 vis.add_polyline([p + r*np.cos(t)*n1 + r*np.sin(t)*n2 for t in np.linspace(0,2.0*np.pi)], color=visual.yellow, name="arcs")
 
 
-        #plot cells
-        for i,edges in enumerate(g.incident_edges):
-            p = g.nodes[i]
-            for edge in edges:
+            #plot cells
+            for edge in g.incident_edges[i]:
                 cname = ("cell %d,%d,%d" % (i,edge[0],edge[1])) if self.split_output else "cells"
-                vis.add_polyline([p+r*q for q in s.node_cells[i][edge]], color=visual.blue,name=cname )
+                vis.add_polyline([p+q for q in s.node_cells[i][edge]], color=visual.blue,name=cname )
 
 
         total_quads = 0
