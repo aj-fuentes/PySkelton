@@ -35,9 +35,7 @@ class ConvexHull(object):
             self.edges.add( (0,0) ) #phantom edge
             self.point_edges[0].append((0,0)) #only one edge
             self.edge_normals= {(0,0):[np.zeros(3),np.zeros(3)]}
-            return
-
-        if len(ps)==2:
+        elif len(ps)==2:
             self.edges.add( (0,1) ) #unique edge
             self.point_edges[0].append( (0,1) ) #only one edge
             self.point_edges[1].append( (0,1) ) #only one edge
@@ -55,35 +53,65 @@ class ConvexHull(object):
                 n2 /= nla.norm(n2)
 
             self.edge_arc = {(0,1):(n1,n2,2*np.pi)}
-
-            return
-
-        data = ['']
-        try:
-            data = pyhull.qconvex('i FN Fn n -A%1.5f' % self.cos_merge,ps)
-        except:
+        else:
             data = ['']
-        if not data[0]:
-            #try the planar convex hull projecting in XY
-            self.planar = True
             try:
-                data = pyhull.qconvex('i FN Fn n Qb0:0B0:0 -A%1.5f' % self.cos_merge,ps)
+                data = pyhull.qconvex('i FN Fn n -A%1.5f' % self.cos_merge,ps)
             except:
                 data = ['']
             if not data[0]:
-                #try the planar convex hull projecting in XZ
+                #try the planar convex hull projecting in XY
+                self.planar = True
                 try:
-                    data = pyhull.qconvex('i FN Fn n Qb1:0B1:0 -A%1.5f' % self.cos_merge,ps)
+                    data = pyhull.qconvex('i FN Fn n Qb0:0B0:0 -A%1.5f' % self.cos_merge,ps)
                 except:
                     data = ['']
                 if not data[0]:
-                    #it should never get to this point!!!
-                    #try the planar convex hull projecting in YZ
-                    data = pyhull.qconvex('i FN Fn n Qb2:0B2:0 -A%1.5f' % self.cos_merge,ps)
+                    #try the planar convex hull projecting in XZ
+                    try:
+                        data = pyhull.qconvex('i FN Fn n Qb1:0B1:0 -A%1.5f' % self.cos_merge,ps)
+                    except:
+                        data = ['']
+                    if not data[0]:
+                        #it should never get to this point!!!
+                        #try the planar convex hull projecting in YZ
+                        data = pyhull.qconvex('i FN Fn n Qb2:0B2:0 -A%1.5f' % self.cos_merge,ps)
+            self.parse_data(data)
 
+    def parse_data(self,data):
 
-        self.parse_data(data)
+        self.number_of_facets = number_of_facets = int(data[0])
+        ps = self.points
 
+        self.facets = [ map(int,f.split()) for f in data[1 : 1+number_of_facets] ]
+        # print "FACETS"
+        # for line in data[1 : 1+number_of_facets]:
+        #     print line
+
+        #neighboring facets to a point
+        self.point_neighbors = [ map(int,f.split())[1:] for f in data[2+number_of_facets : 2+number_of_facets+ps.shape[0]] ]
+        # print "POINT NEIGHBORS"
+        # for line in data[2+number_of_facets : 2+number_of_facets+ps.shape[0]]:
+        #     print line
+
+        #neighboring facets to a point
+        self.facet_neighbors = [ map(int,f.split())[1:] for f in data[3+number_of_facets+ps.shape[0]: 3+2*number_of_facets+ps.shape[0]] ]
+        # print "FACET NEIGHBORS"
+        # for line in data[3+number_of_facets+ps.shape[0]: 3+number_of_facets+2*ps.shape[0]]:
+        #     print line
+
+        #outward normals of the facets
+        self.normals = [ np.array(map(float,n0.split())[:-1]) for n0 in data[5+2*number_of_facets+ps.shape[0]:]  ]
+        # print "FACET NORMALS"
+        # for line in data[5+number_of_facets+2*ps.shape[0]:]:
+        #     print line
+
+    def process_data(self):
+
+        if len(self.points)<3:
+            return
+
+        ps = self.points
 
         if self.planar:
             n = np.cross(self.points[1]-self.points[0],self.points[2]-self.points[0])
@@ -170,34 +198,5 @@ class ConvexHull(object):
                 #this is to catch the common edge between the first facet and the last one
             #we must catch the last edge between f and fisrt_facet
             compute_edge_data(i,f,first_facet)
-
-    def parse_data(self,data):
-
-        self.number_of_facets = number_of_facets = int(data[0])
-        ps = self.points
-
-        self.facets = [ map(int,f.split()) for f in data[1 : 1+number_of_facets] ]
-        # print "FACETS"
-        # for line in data[1 : 1+number_of_facets]:
-        #     print line
-
-        #neighboring facets to a point
-        self.point_neighbors = [ map(int,f.split())[1:] for f in data[2+number_of_facets : 2+number_of_facets+ps.shape[0]] ]
-        # print "POINT NEIGHBORS"
-        # for line in data[2+number_of_facets : 2+number_of_facets+ps.shape[0]]:
-        #     print line
-
-        #neighboring facets to a point
-        self.facet_neighbors = [ map(int,f.split())[1:] for f in data[3+number_of_facets+ps.shape[0]: 3+2*number_of_facets+ps.shape[0]] ]
-        # print "FACET NEIGHBORS"
-        # for line in data[3+number_of_facets+ps.shape[0]: 3+number_of_facets+2*ps.shape[0]]:
-        #     print line
-
-        #outward normals of the facets
-        self.normals = [ np.array(map(float,n0.split())[:-1]) for n0 in data[5+2*number_of_facets+ps.shape[0]:]  ]
-        # print "FACET NORMALS"
-        # for line in data[5+number_of_facets+2*ps.shape[0]:]:
-        #     print line
-
 
 

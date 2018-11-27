@@ -188,6 +188,8 @@ class Scaffolder(object):
         self.chs = []
         for i,av in enumerate(self.avs):
             ch = ConvexHull([av[edge] for edge in self.graph.incident_edges[i]],self.cos_merge)
+            ch.compute_data()
+            ch.process_data()
             self.chs.append(ch)
 
     def generate_lp_indices_from_node_and_edge(self, i, edge):

@@ -29,6 +29,7 @@ class Graph(object):
         self.edges.append(edge)
         self.incident_edges[i].append(edge)
         self.incident_edges[j].append(edge)
+        return edge
 
     def is_joint(self, i):
         return len(self.incident_edges[i])>2
