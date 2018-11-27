@@ -18,13 +18,11 @@ class ConvexHull(object):
 
         self.cos_merge = cos_merge #defines the angle for two facets to be considered coplanar
 
-        self._compute_data()
-
     def get_point_from_graph_edge(self,edge):
         return self.graph_edges.index(edge)
 
 
-    def _compute_data(self):
+    def compute_data(self):
         """Compute the convex hull and associated data"""
 
         self.edges = set()
