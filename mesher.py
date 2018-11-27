@@ -132,7 +132,6 @@ class Mesher(object):
 
         return vis
 
-
     def shoot_ray_parallel(self,data):
 
         fs = itertools.repeat(self.field)
@@ -146,19 +145,37 @@ class Mesher(object):
     def shoot_ray(self,data):
         return [self.field.shoot_ray(Q,v,self.level_set,self.shoot_double_distance,guess_r) for (v,Q,guess_r) in data]
 
-    def draw_piece(self,vis,ps):
+    def draw_piece(self,vis,ps,color=None,name=None,draw_mesh_lines=True):
         M = self.quads_num+1
         N = len(ps)/M
         fs = [[i*M + j, i*M + (j+1),((i+1)%N)*M + (j+1),((i+1)%N)*M + j ] for i in range(N) for j in range(M-1)]
 
         suffix = str(id(ps)) if self.split_output else ""
+        if color is None:
+            color = self.surface_color
+        if name is None:
+            name = self.surface_name+suffix
+        vis.add_mesh(ps,fs,name=name,color=color)
 
-        vis.add_mesh(ps,fs,name=self.surface_name+suffix,color=self.surface_color)
-
-        for i in range(N):
-            vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix,color=self.mesh_lines_color)
+        if draw_mesh_lines:
+            for i in range(N):
+                vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix,color=self.mesh_lines_color)
 
         return vis
+
+    def draw_isolated_piece(self,vis,f,vecs_num):
+        ts = np.linspace(0.0,f.skel.l,self.quads_num+1)
+        NBs = [[f.skel.get_normal_at(t),f.skel.get_binormal_at(t)] for t in ts]
+        Ps = [f.skel.get_point_at(t) for t in ts]
+
+        vs = [np.array([1.0,0.0])*np.cos(phi) + np.array([0.0,1.0])*sin(phi) for phi in np.linspace(0.0,2.0*np.pi,vecs_num,endpoint=False)]
+        vs /= nla.norm(vs,axis=1)[:,None]
+
+        ps = [
+            f.shoot_ray(P,v[0]*N+v[1]*B,self.level_set,self.shoot_double_distance) for v in vs for P,(N,B) in zip(Ps,NBs)
+        ]
+        self.draw_piece(vis,ps,color="blue",name="isolated_pieces",draw_mesh_lines=False)
+
 
     def compute_dangling_piece(self,i):
         pass
