@@ -442,6 +442,7 @@ def knot_g1():
     b = np.array([2.0,2.0])
     c = np.array([1.0,1.0])
     th = np.array([0.0,-phi])
+    print("Phi={} ~ ---------------".format(phi,np.pi/phi))
     # th = np.array([0.0,0.0])
 
     field = fl.G1Field(1.0,curve,a,b,c,th)
@@ -534,6 +535,7 @@ def compute(g,field,pieces,min_subdivs=4,quads_num=4,split_output=False,parallel
     scaff.set_regular(regular)
     # scaff.set_regular(True)
     scaff.long_arc_angle = np.pi/2.0
+    scaff.min_subdivs = min_subdivs
 
 
     s = timeit.default_timer()
@@ -559,13 +561,13 @@ def compute(g,field,pieces,min_subdivs=4,quads_num=4,split_output=False,parallel
 
 
 if __name__=="__main__":
-    compute(*dragon())
+    # compute(*dragon())
     # compute(*segment_scaff(),quads_num=20,min_subdivs=16)
     # compute(*arc_scaff(),quads_num=20,min_subdivs=16)
     # compute(*combined_scaff(),quads_num=20,min_subdivs=16)
     # compute(*combined_scaff2(),quads_num=20,min_subdivs=16)
     # compute(*fertility(),quads_num=20,min_subdivs=8)
     # compute(*knot())
-    # compute(*knot_g1(),quads_num=200)
+    compute(*knot_g1(),quads_num=200,min_subdivs=12)
     # compute(*g1_segments2(),quads_num=20)
     # compute(*g1_segments(),quads_num=20)
