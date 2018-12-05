@@ -24,6 +24,7 @@ class Mesher(object):
 
         self.quads_num = 8
         self.cap_quads_num = 8
+        self.max_quads_size = 0.0 #defines the quads_num
         self.split_output = False
         self.level_set = 0.1
         self.shoot_double_distance = 8
@@ -61,18 +62,20 @@ class Mesher(object):
         #     else:
         #         self.arc_ps = [self.compute_arc_piece(cpiece) for cpiece in arcs ]
 
-        # if not self.dangling_ps:
-            # self.dangling_ps = [self.compute_dangling_piece(i) for i in self.scaff.graph.get_dangling_indices()]
+        if not self.dangling_ps:
+            self.dangling_ps = [self.compute_dangling_piece(i) for i in self.scaff.graph.get_dangling_indices()]
 
     def draw(self,vis):
 
         self.compute()
 
-        for ps in self.piece_ps:
-            self.draw_piece(vis,ps)
+        for ps,(skel,_) in zip(self.piece_ps,self.pieces):
+            self.draw_piece(vis,ps,skel)
+            vis.add_polyline([skel.get_point_at(t) for t in np.linspace(0.0,skel.l,int(skel.l/0.2)+2)],name="skel_splines_mesher",color="blue")
 
-        for skel,_ in self.pieces:
-            vis.add_polyline([skel.get_point_at(t) for t in np.linspace(0.0,skel.l,int(skel.l/0.2))],name="skel_pieces",color="blue")
+        for ps in self.dangling_ps:
+            self.draw_piece_cap(vis,ps)
+
         # for ps in self.arc_ps:
         #     self.draw_piece(vis,ps)
         # # for ps in self.dangling_ps:
@@ -145,8 +148,8 @@ class Mesher(object):
     def shoot_ray(self,data):
         return [self.field.shoot_ray(Q,v,self.level_set,self.shoot_double_distance,guess_r) for (v,Q,guess_r) in data]
 
-    def draw_piece(self,vis,ps,color=None,name=None,draw_mesh_lines=True):
-        M = self.quads_num+1
+    def draw_piece(self,vis,ps,skel,color=None,name=None,draw_mesh_lines=True):
+        M = self.get_shooting_num(skel)
         N = len(ps)/M
         fs = [[i*M + j, i*M + (j+1),((i+1)%N)*M + (j+1),((i+1)%N)*M + j ] for i in range(N) for j in range(M-1)]
 
@@ -155,16 +158,34 @@ class Mesher(object):
             color = self.surface_color
         if name is None:
             name = self.surface_name+suffix
-        vis.add_mesh(ps,fs,name=name,color=color)
+        vis.add_mesh(ps,fs,name=name+"_mesher",color=color)
 
         if draw_mesh_lines:
             for i in range(N):
-                vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix,color=self.mesh_lines_color)
+                vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix+"_mesher",color=self.mesh_lines_color)
+
+        return vis
+
+    def draw_piece_cap(self,vis,ps,color=None,name=None,draw_mesh_lines=True):
+        M = self.cap_quads_num + 1
+        N = len(ps)/M
+        fs = [[i*M + j, i*M + (j+1),((i+1)%N)*M + (j+1),((i+1)%N)*M + j ] for i in range(N) for j in range(M-1)]
+
+        suffix = str(id(ps)) if self.split_output else ""
+        if color is None:
+            color = self.surface_color
+        if name is None:
+            name = self.surface_name+suffix
+        vis.add_mesh(ps,fs,name=name+"_mesher",color=color)
+
+        if draw_mesh_lines:
+            for i in range(N):
+                vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix+"_mesher",color=self.mesh_lines_color)
 
         return vis
 
     def draw_isolated_piece(self,vis,f,vecs_num):
-        ts = np.linspace(0.0,f.skel.l,self.quads_num+1)
+        ts = np.linspace(0.0,f.skel.l,self.get_shooting_num(f.skel))
         NBs = [[f.skel.get_normal_at(t),f.skel.get_binormal_at(t)] for t in ts]
         Ps = [f.skel.get_point_at(t) for t in ts]
 
@@ -178,7 +199,40 @@ class Mesher(object):
 
 
     def compute_dangling_piece(self,i):
-        pass
+        P = self.scaff.graph.nodes[i]
+        e = self.scaff.graph.incident_edges[i][0]
+
+        cell = self.scaff.node_cells[i][e][:-1]
+
+        j = e[0] if e[0]!=i else e[1]
+        Q = self.scaff.graph.nodes[j]
+        v = normalize(P-Q)
+
+        N = self.cap_quads_num + 1
+        ts = np.linspace(0.0,np.pi/2.0,N)
+
+        Ps = itertools.repeat(P) #Points
+        _r = None
+        rs = itertools.repeat(_r)
+        data = []
+        for u in cell:
+            assert np.isclose(np.dot(u,v),0.0),"Dangling cell vector not perp to skel"
+            vecs = [normalize(u*np.cos(t) + v*np.sin(t)) for t in ts]
+            data.extend(zip(vecs,Ps,rs))
+
+        if self.parallel_ray_shooting:
+            return self.shoot_ray_parallel(data)
+        else:
+            return self.shoot_ray(data)
+
+
+
+    def get_shooting_num(self,skel):
+        N = self.quads_num+1
+        if self.max_quads_size>0.0:
+            N = max(N,int(skel.l/self.max_quads_size))
+        print "N {}, skel length {}".format(N,skel.l)
+        return N
 
     def compute_piece(self,skel,nodes):
 
@@ -194,14 +248,15 @@ class Mesher(object):
             cell1,cell2 = cell2,cell1
 
         #compute extra data associated to the piece
-        ts = np.linspace(0.0,1.0,self.quads_num+1)
+        N = self.get_shooting_num(skel)
+        ts = np.linspace(0.0,1.0,N)
 
         # print "GET POINT AT 0"
         # print skel.get_point_at(0.0)
         # print "GET POINT AT 0"
 
         Ps = [skel.get_point_at(t*skel.l) for t in ts] #Points
-        _r = max(max(skel.field.b),max(skel.field.c))
+        _r = None
         rs = [_r for t in ts]
         FsT = [skel.get_frame_at(t*skel.l).transpose() for t in ts] #Frames transposed
         Fi,Fe = skel.get_frame_at(0.0),skel.get_frame_at(skel.l) #initial and ending Frames
