@@ -2,8 +2,8 @@
 import math
 import numpy as np
 
-import skeleton as sk
-import nformulas as nf
+from . import skeleton as sk
+from . import nformulas as nf
 import pyroots as pr
 
 _default_radii = np.ones(2,dtype=float)

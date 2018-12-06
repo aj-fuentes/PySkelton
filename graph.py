@@ -3,7 +3,7 @@ import numpy.linalg as nla
 import re
 import collections
 
-from _math import *
+from ._math import *
 
 class Graph(object):
     """Graph input to scaffolder"""
@@ -64,7 +64,7 @@ class Graph(object):
         return [i for i in range(len(self.nodes)) if self.is_articulation(i)]
 
     def get_dangling_indices(self):
-        return filter(self.is_dangling,range(len(self.nodes))) # [i for i in range(len(self.nodes)) if self.is_dangling(i)]
+        return list(filter(self.is_dangling,list(range(len(self.nodes))))) # [i for i in range(len(self.nodes)) if self.is_dangling(i)]
 
     def find_node_from_point(self, p):
         for i,q in enumerate(self.nodes):
@@ -83,7 +83,7 @@ class Graph(object):
                 line = init_spc.sub("",line)
                 line = spc.sub(" ",line)
                 if line:
-                    x0,y0,z0,x1,y1,z1,r = map(float,line.split())
+                    x0,y0,z0,x1,y1,z1,r = list(map(float,line.split()))
                     p0 = np.array([x0,y0,z0])
                     p1 = np.array([x1,y1,z1])
                     i = self.add_node(p0)
@@ -109,9 +109,9 @@ class Graph(object):
                     #     print len(self.nodes)-1,i,line,self.nodes[i]
                 elif reading=="edges":
                     # print line
-                    self.add_edge(*map(int,line.split()))
+                    self.add_edge(*list(map(int,line.split())))
                 elif reading=="arcs":
-                    self.add_arc(map(int,line.split()))
+                    self.add_arc(list(map(int,line.split())))
                 elif reading=="radii":
                     self.data["radii"].append(float(line))
 

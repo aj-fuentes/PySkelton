@@ -2,13 +2,13 @@ import numpy as np
 import scipy.optimize as sop
 import timeit
 
-import skeleton as sk
-import field as fl
+from . import skeleton as sk
+from . import field as fl
 
 
 def do_fitting(skel,ps,level_set,R,low,upp,vals):
 
-    ps = map(np.array,ps)
+    ps = list(map(np.array,ps))
     level_set = float(level_set)
     R = float(R)
     low = np.array(low)
@@ -35,7 +35,7 @@ def do_fitting(skel,ps,level_set,R,low,upp,vals):
 
     def fun2(xdata,*params):
         update_f(params)
-        return map(f.eval,xdata)
+        return list(map(f.eval,xdata))
 
 
     p0 = upp - 0.1
@@ -44,7 +44,7 @@ def do_fitting(skel,ps,level_set,R,low,upp,vals):
     stime = timeit.default_timer()
     sol = sop.curve_fit(fun2,ps,np.repeat(level_set,len(ps)),p0=p0,bounds=(low,upp))
     etime = timeit.default_timer()
-    print "Time with curve_fit={}".format(etime-stime)
+    print("Time with curve_fit={}".format(etime-stime))
 
     return sol[0],f
 

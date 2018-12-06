@@ -1,5 +1,5 @@
 import numpy as np
-from _math import *
+from ._math import *
 import bisect
 import math
 

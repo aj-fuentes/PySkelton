@@ -1,12 +1,12 @@
 import numpy as np
 import numpy.linalg as nla
-from _math import *
+from ._math import *
 import math
 
 from multiprocessing import Pool
 import itertools
 
-import skeleton as sk
+from . import skeleton as sk
 
 _extra_dist = np.array([5.0,0.0,0.0])
 
@@ -141,7 +141,7 @@ class Mesher(object):
         ls = itertools.repeat(self.level_set)
         ds = itertools.repeat(self.shoot_double_distance)
 
-        args = itertools.izip(fs,data,ls,ds)
+        args = zip(fs,data,ls,ds)
 
         return self.workers_pool.map(_shoot_ray,args)
 
@@ -150,7 +150,7 @@ class Mesher(object):
 
     def draw_piece(self,vis,ps,skel,color=None,name=None,draw_mesh_lines=True):
         M = self.get_shooting_num(skel)
-        N = len(ps)/M
+        N = len(ps)//M
         fs = [[i*M + j, i*M + (j+1),((i+1)%N)*M + (j+1),((i+1)%N)*M + j ] for i in range(N) for j in range(M-1)]
 
         suffix = str(id(ps)) if self.split_output else ""
@@ -168,7 +168,7 @@ class Mesher(object):
 
     def draw_piece_cap(self,vis,ps,color=None,name=None,draw_mesh_lines=True):
         M = self.cap_quads_num + 1
-        N = len(ps)/M
+        N = len(ps)//M
         fs = [[i*M + j, i*M + (j+1),((i+1)%N)*M + (j+1),((i+1)%N)*M + j ] for i in range(N) for j in range(M-1)]
 
         suffix = str(id(ps)) if self.split_output else ""
@@ -218,7 +218,7 @@ class Mesher(object):
         for u in cell:
             assert np.isclose(np.dot(u,v),0.0),"Dangling cell vector not perp to skel"
             vecs = [normalize(u*np.cos(t) + v*np.sin(t)) for t in ts]
-            data.extend(zip(vecs,Ps,rs))
+            data.extend(list(zip(vecs,Ps,rs)))
 
         if self.parallel_ray_shooting:
             return self.shoot_ray_parallel(data)
@@ -231,7 +231,7 @@ class Mesher(object):
         N = self.quads_num+1
         if self.max_quads_size>0.0:
             N = max(N,int(skel.l/self.max_quads_size))
-        print "N {}, skel length {}".format(N,skel.l)
+        print("N {}, skel length {}".format(N,skel.l))
         return N
 
     def compute_piece(self,skel,nodes):
@@ -287,7 +287,7 @@ class Mesher(object):
             # print vecs[0]+Ps[0],vecs[-1]+Ps[-1]
             # print m2+Ps[0],n2+Ps[-1]
             # print map(nla.norm,vecs)
-            data.extend(zip(vecs,Ps,rs))
+            data.extend(list(zip(vecs,Ps,rs)))
             # break
 
         if self.parallel_ray_shooting:
@@ -301,7 +301,7 @@ class Mesher(object):
         min_i = -1
 
         nn = len(cell1)
-        idxs = range(nn)
+        idxs = list(range(nn))
         reverse = False
 
         cell2 = [p+_extra_dist for p in cell2]

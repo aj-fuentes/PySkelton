@@ -83,7 +83,7 @@ class ConvexHull(object):
         self.number_of_facets = number_of_facets = int(data[0])
         ps = self.points
 
-        self.facets = [ map(int,f.split()) for f in data[1 : 1+number_of_facets] ]
+        self.facets = [ list(map(int,f.split())) for f in data[1 : 1+number_of_facets] ]
         # print "FACETS"
         # for line in data[1 : 1+number_of_facets]:
         #     print line

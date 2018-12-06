@@ -7,11 +7,11 @@ import os
 import numpy as np
 import numpy.linalg as nla
 
-from graph import Graph
-from chull import ConvexHull
-import visualization as visual
+from .graph import Graph
+from .chull import ConvexHull
+from . import visualization as visual
 
-from _math import *
+from ._math import *
 
 class Scaffolder(object):
     """Implementation of Scaffolding skeletons using spherical Voronoi diagrams"""
@@ -329,11 +329,11 @@ class Scaffolder(object):
             for line in f:
                 m = exp.match(line)
                 if m:
-                    n,i,j,s = map(int, m.groups())
+                    n,i,j,s = list(map(int, m.groups()))
                     self.solution[n][(i,j)] = s
                 else:
                     m = exp2.match(line)
-                    _,cp = map(int, m.groups())
+                    _,cp = list(map(int, m.groups()))
                     self.cross_profiles.add(cp)
                     #TODO: do something with the number of quads per segments
 
@@ -476,7 +476,7 @@ class Scaffolder(object):
     def create_dangling_cell(self,idx,_):
         subdiv = self.solution[idx][(0,0)] * self.quad_subdiv
 
-        n = self.avs[idx].values()[0]
+        n = list(self.avs[idx].values())[0]
 
         #find the node connected with this dangling node
         graph_edge = self.graph.incident_edges[idx][0]
@@ -540,7 +540,7 @@ class Scaffolder(object):
         min_d = sum(nla.norm(cp1-cp2) for cp1,cp2 in zip(dc1,c2))
         reverse = False
 
-        for i in xrange(1,n):
+        for i in range(1,n):
             dc1.rotate(1)
             ###### Only need to try with the reversed cell if the rotation
             ###### order was taken into account for the ordering of the facets
@@ -552,7 +552,7 @@ class Scaffolder(object):
 
         dc1 = co.deque(c1)
         dc1.reverse()
-        for i in xrange(n):
+        for i in range(n):
             d = sum(nla.norm(cp1-cp2) for cp1,cp2 in zip(dc1,c2))
             if d < min_d:
                 min_d = d
@@ -560,7 +560,7 @@ class Scaffolder(object):
                 reverse = True
             dc1.rotate(1)
 
-        idxs = co.deque(range(n))
+        idxs = co.deque(list(range(n)))
         if reverse: idxs.reverse()
         idxs.rotate(min_i)
 
@@ -663,7 +663,7 @@ class Scaffolder(object):
             ch,p = s.chs[i],g.nodes[i]
             #radius for current node
             r = self.radii[i]
-            vis.add_points([r*v+p for v in av.values()],name="intersections_scaff")
+            vis.add_points([r*v+p for v in list(av.values())],name="intersections_scaff")
             # if len(av)>1:
             #     for j,k in ch.edges:
             #         vis.add_polyline([r*av[g.incident_edges[i][j]]+p,r*av[g.incident_edges[i][k]]+p],color=visual.black,name="edges_scaff")
@@ -676,7 +676,7 @@ class Scaffolder(object):
                     vis.add_points([p+r*n1,p+r*np.cos(phi)*n1+r*np.sin(phi)*n2],color=visual.blue,name="voronoi_sites_scaff")
                     n1,n2 = ch.edge_normals[e]
             if len(av)==1:
-                graph_edge,cell = self.node_cells[i].items()[0]
+                graph_edge,cell = list(self.node_cells[i].items())[0]
                 #recover the arc from the points of the cell
                 n1 = cell[0]-cell[1]
                 n1 /= nla.norm(n1)
@@ -685,7 +685,7 @@ class Scaffolder(object):
                 n2 = np.cross(n1,n_)
                 n2 /= nla.norm(n2)
                 assert np.isclose(np.dot(n1,n_),0.0),"Dangling cell not on the perp plane"
-                v/=nla.norm(v)
+
                 vis.add_polyline([p + r*np.cos(t)*n1 + r*np.sin(t)*n2 for t in np.linspace(0,2.0*np.pi)], color=visual.yellow, name="arcs_scaff")
 
 
@@ -731,7 +731,7 @@ class Scaffolder(object):
                 mname = ("mesh_lines %d,%d _scaff" % edge) if self.split_output else "mesh_lines_scaff"
                 vis.add_polyline([p1+p,p2+q],color=visual.cyan,name=mname)
 
-        print "TOTAL QUADS IN VISUALIZATION",total_quads
+        print(("TOTAL QUADS IN VISUALIZATION",total_quads))
         return vis
 
     def _file_name(self,path):
@@ -790,7 +790,7 @@ class Scaffolder(object):
                 if line[0] == "#":
                     continue
                 if line:
-                    T = map(int,line.split(","))
+                    T = list(map(int,line.split(",")))
                     self.add_symmetry(T)
 
 if __name__=="__main__":

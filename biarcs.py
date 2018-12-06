@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.linalg as nla
-from visualization import *
+from .visualization import *
 import pyroots as pr
 import math
 
