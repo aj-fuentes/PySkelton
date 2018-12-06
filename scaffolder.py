@@ -731,7 +731,7 @@ class Scaffolder(object):
                 mname = ("mesh_lines %d,%d _scaff" % edge) if self.split_output else "mesh_lines_scaff"
                 vis.add_polyline([p1+p,p2+q],color=visual.cyan,name=mname)
 
-        print(("TOTAL QUADS IN VISUALIZATION",total_quads))
+        print("TOTAL QUADS IN VISUALIZATION",total_quads)
         return vis
 
     def _file_name(self,path):

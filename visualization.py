@@ -1,6 +1,6 @@
 import subprocess
 
-from ConfigParser import RawConfigParser
+from configparser import RawConfigParser
 
 import numpy as np
 import time
@@ -27,9 +27,10 @@ vtk = None
 try:
     import vtk
 except:
-    print "No vtk in your system"
+    print("No vtk in your system")
 
 def get_axel_visualization():
+    # return VisualizationVPython()
     return VisualizationAxel()
 
 def _verify_color(color):
@@ -56,19 +57,19 @@ class Visualization(object):
         color = _verify_color(color)
         if name is None:
             name = "Mesh%d" % len(self.meshes)
-        if name in self.meshes.keys():
+        if name in list(self.meshes.keys()):
             n = len(self.meshes[name][0])
             self.meshes[name][0].extend(mesh_points)
             fs = list(map(list,mesh_facets))
             for f in fs:
-                for i in xrange(len(f)):
+                for i in range(len(f)):
                     f[i] += n
             self.meshes[name][1].extend(fs)
         else:
             self.meshes[name] = (list(mesh_points), list(mesh_facets), list(color) )
 
     def add_normals(self, normals, name):
-        if self.normals.has_key(name):
+        if name in self.normals:
             self.normals[name].extend(normals)
         else:
             self.normals[name] = list(normals)
@@ -77,7 +78,7 @@ class Visualization(object):
         color = _verify_color(color)
         if name is None:
             name = "Polyline%d" % len(self.polylines)
-        if name in self.polylines.keys():
+        if name in list(self.polylines.keys()):
             self.polylines[name][0].extend(list(poly_points))
             self.polylines[name][1].append(len(poly_points))
         else:
@@ -88,7 +89,7 @@ class Visualization(object):
         if name is None:
             name = "Points%d" % len(self.points)
 
-        if name in self.points.keys():
+        if name in list(self.points.keys()):
             self.points[name][0].extend(list(points))
         else:
             self.points[name] = (list(points), list(color) )
@@ -268,18 +269,18 @@ class VisualizationVTK(Visualization):
     def show(self):
 
 
-        for mesh in self.meshes.values():
+        for mesh in list(self.meshes.values()):
             ps, fs, color = mesh
             self.add_vtk_mesh(ps,fs,color=color)
 
-        for poly in self.polylines.values():
+        for poly in list(self.polylines.values()):
             ps, ls, color = poly
             n = 0
             for l in ls:
                 self.add_vtk_polyline(ps[n:n+l],color=color)
                 n+=l
 
-        for ps,color in self.points.values():
+        for ps,color in list(self.points.values()):
             self.add_vtk_points(ps,color=color)
 
 
@@ -329,10 +330,10 @@ class VisualizationAxel(Visualization):
             f.write('\t\t%f %f %f\n' % tuple(p))
         f.write('\t</points>\n')
 
-        if self.normals.has_key(name):
+        if name in self.normals:
             ns = self.normals[name]
             if len(ns) != len(ps):
-                print "Error: not the same number of normals and points in the mesh: %" % name
+                print("Error: not the same number of normals and points in the mesh: %" % name)
             else:
                 f.write('\t<normals>\n')
                 for n in ns:
@@ -360,7 +361,7 @@ class VisualizationAxel(Visualization):
         f.write('\t<edges>\n')
         n = 0
         for l in ls:
-            f.write('\t\t%d %s\n' % (l,' '.join(map(str,inv[range(n,n+l)])) ) )
+            f.write('\t\t%d %s\n' % (l,' '.join(map(str,inv[list(range(n,n+l))])) ) )
             n += l
         f.write('\t</edges>\n')
         f.write('</mesh>\n')
@@ -395,7 +396,7 @@ class VisualizationAxel(Visualization):
             line = f.readline() #discard comment lines
 
         #read teh number of points and faces
-        nump,numf,_ = map(int,line.split(' '))
+        nump,numf,_ = list(map(int,line.split(' ')))
         line = f.readline()
 
         ps = []
@@ -406,7 +407,7 @@ class VisualizationAxel(Visualization):
                 line = f.readline()
                 continue
 
-            ps.append(np.array(map(float,line.replace('\n', '').split(' '))))
+            ps.append(np.array(list(map(float,line.replace('\n', '').split(' ')))))
 
             line = f.readline()
             nump -= 1
@@ -418,7 +419,7 @@ class VisualizationAxel(Visualization):
                 line = f.readline()
                 continue
 
-            fs.append(map(int,line.replace('\n', '').split(' ')[2:]))
+            fs.append(list(map(int,line.replace('\n', '').split(' ')[2:])))
 
             line = f.readline()
             numf -= 1
@@ -444,11 +445,11 @@ class VisualizationAxel(Visualization):
 
         with open(self.output_file,'wt') as f:
             f.write('<axl>\n')
-            for name in self.meshes.keys():
+            for name in list(self.meshes.keys()):
                 self.write_mesh(f,name)
-            for name in self.polylines.keys():
+            for name in list(self.polylines.keys()):
                 self.write_polyline(f,name)
-            for name in self.points.keys():
+            for name in list(self.points.keys()):
                 self.write_points(f,name)
             f.write('</axl>\n')
         if save_and_show:
@@ -461,39 +462,113 @@ class VisualizationAxel(Visualization):
     def save(self):
         self.show(False)
 
+class VisualizationVPython(Visualization):
+
+    def hide_element(self,checkbox):
+        checkbox.element.visible = checkbox.checked
+
+    def hide_multi_elements(self,checkbox):
+        for element in checkbox.elements:
+            element.visible = checkbox.checked
+
+    def draw_meshes(self):
+        import vpython as vp
+        self.scene.append_to_caption('\n')
+
+        for name,(ps,fs,color) in self.meshes.items():
+
+            ps,inv = np.unique(ps,axis=0,return_inverse=True)
+            fs = [[inv[x] for x in f] for f in fs]
+            c = vp.vec(float(color[0])/255.0,float(color[1])/255.0,float(color[2])/255.0)
+            vecs = [vp.vec(*p) for p in ps]
+            verts = [vp.vertex(pos=v,color=c) for v in vecs]
+
+            qs = [vp.quad(vs=[verts[f[0]],verts[f[1]],verts[f[2]],verts[f[3]]]) for f in fs]
+
+            ms = vp.compound(qs)
+
+            cb = vp.checkbox(bind=self.hide_element, text=name,checked=True)
+            cb.element = ms
+            self.scene.append_to_caption(' ')
+
+    def draw_polylines(self):
+        import vpython as vp
+        self.scene.append_to_caption('\n')
+
+        for name,(ps,ls,color) in self.polylines.items():
+            c = vp.vec(float(color[0])/255.0,float(color[1])/255.0,float(color[2])/255.0)
+
+            curs = []
+
+            cb = vp.checkbox(bind=self.hide_multi_elements, text=name,checked=True)
+            self.scene.append_to_caption(' ')
+            cb.elements = curs
+
+            n = 0
+            for l in ls:
+                vecs = [vp.vec(*p) for p in ps[n:n+l]]
+                cur = vp.curve(pos=vecs,color=c,radius=0.01)
+                curs.append(cur)
+                n+=l
+
+    def draw_points(self):
+        import vpython as vp
+        self.scene.append_to_caption('\n')
+
+        for name,(ps,color) in self.points.items():
+
+            ps = np.unique(ps,axis=0)
+            c = vp.vec(float(color[0])/255.0,float(color[1])/255.0,float(color[2])/255.0)
+            vecs = [vp.vec(*p) for p in ps]
+            pts = vp.points(pos=vecs,color=c,radius=0.01)
+
+            cb = vp.checkbox(bind=self.hide_element, text=name,checked=True)
+            cb.element = pts
+            self.scene.append_to_caption(' ')
+
+    def show(self):
+        import vpython as vp
+        self.scene = vp.canvas(width=1000,height=1000,background=vp.color.white)
+        # scene.lights = []
+
+        self.draw_meshes()
+        self.draw_polylines()
+        self.draw_points()
+
+
 
 Visualization2 = VisualizationAxel
 
-class VisualizationPLY(Visualization):
-    def __init__(self):
-        super(VisualizationPLY, self).__init__()
+# class VisualizationPLY(Visualization):
+#     def __init__(self):
+#         super(VisualizationPLY, self).__init__()
 
-    def save(self, mesh_name, fname="vis.ply"):
-        ps, fs, color = self.meshes[mesh_name]
-        ps,inv = np.unique(ps,axis=0,return_inverse=True)
-        nv = len(ps)
-        nf = len(fs)
-        header = """ply
-format ascii 1.0
-comment made by Alvaro Fuentes
-comment Quad mesh around a skeleton
-element vertex {}
-property float x
-property float y
-property float z
-element face {}
-property list uchar int vertex_index
-end_header
-""".format(nv,nf)
+#     def save(self, mesh_name, fname="vis.ply"):
+#         ps, fs, color = self.meshes[mesh_name]
+#         ps,inv = np.unique(ps,axis=0,return_inverse=True)
+#         nv = len(ps)
+#         nf = len(fs)
+#         header = """ply
+# format ascii 1.0
+# comment made by Alvaro Fuentes
+# comment Quad mesh around a skeleton
+# element vertex {}
+# property float x
+# property float y
+# property float z
+# element face {}
+# property list uchar int vertex_index
+# end_header
+# """.format(nv,nf)
 
-        with open(fname,"wt") as f:
-            f.write(header)
-            for pt in ps: f.write("{} {} {}\n".format(*pt))
-            for fc in fs:
-                fc = [inv[x] for x in fc]
-                if len(fc)>len(set(fc)): #check for degenerate quads
-                    fc = set(fc)
-                f.write("{} {}\n".format(len(fc)," ".join( map(str,fc)) ) )
+#         with open(fname,"wt") as f:
+#             f.write(header)
+#             for pt in ps: f.write("{} {} {}\n".format(*pt))
+#             for fc in fs:
+#                 fc = [inv[x] for x in fc]
+#                 if len(fc)>len(set(fc)): #check for degenerate quads
+#                     fc = set(fc)
+#                 f.write("{} {}\n".format(len(fc)," ".join( map(str,fc)) ) )
 
 
 
