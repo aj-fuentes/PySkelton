@@ -212,7 +212,7 @@ def dragon():
 
         sol = sop.minimize_scalar(dist,bounds=(0.1,100.0),method='bounded')
         k = sol.x
-        print "Fitting error={} scaling factor={}".format(sol.fun,k)
+        print("Fitting error={} scaling factor={}".format(sol.fun,k))
         return k*rs
 
 
@@ -228,7 +228,7 @@ def dragon():
         seg = sk.Segment.make_segment(A,B,n)
         ri,rf = g.data["radii"][i],g.data["radii"][j]
         rs = find_fitting(seg,ri,rf)
-        print "Found fitting rs={} for {}".format(rs,[ri,rf])
+        print("Found fitting rs={} for {}".format(rs,[ri,rf]))
         fs.append(fl.SegmentField(seg.l/5.0,seg,a=a,b=rs,c=rs))
         pieces.append((seg,[i,j]))
 
@@ -530,7 +530,7 @@ def compute(g,field,pieces,min_subdivs=4,quads_num=4,split_output=False,parallel
     try:
         scaff.read_symmetries(g.sym_file)
     except:
-        print "no symmetries file"
+        print( "no symmetries file")
 
     scaff.set_regular(regular)
     # scaff.set_regular(True)
@@ -541,7 +541,7 @@ def compute(g,field,pieces,min_subdivs=4,quads_num=4,split_output=False,parallel
     s = timeit.default_timer()
     scaff.compute_scaffold()
     e = timeit.default_timer()
-    print "scaff time={}".format(e-s)
+    print( "scaff time={}".format(e-s))
 
     mesher = ms.Mesher(scaff,field,pieces)
 
@@ -554,7 +554,7 @@ def compute(g,field,pieces,min_subdivs=4,quads_num=4,split_output=False,parallel
     s = timeit.default_timer()
     mesher.compute()
     e = timeit.default_timer()
-    print "mesh time={}".format(e-s)
+    print( "mesh time={}".format(e-s))
 
     mesher.draw(vis)
     vis.show()
@@ -568,6 +568,6 @@ if __name__=="__main__":
     # compute(*combined_scaff2(),quads_num=20,min_subdivs=16)
     # compute(*fertility(),quads_num=20,min_subdivs=8)
     # compute(*knot())
-    compute(*knot_g1(),quads_num=200,min_subdivs=12)
+    # compute(*knot_g1(),quads_num=200,min_subdivs=12)
     # compute(*g1_segments2(),quads_num=20)
-    # compute(*g1_segments(),quads_num=20)
+    compute(*g1_segments(),quads_num=20,min_subdivs=12)

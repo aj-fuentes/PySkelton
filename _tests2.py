@@ -363,7 +363,25 @@ def pgradient():
     print "gradient         f(P)={}".format(f.parametric_gradient_eval(P))
     print "gradient f(P+2.0*T+0.5N)={}".format(f.parametric_gradient_eval(P+2.0*v+0.5*n))
 
+def test_tang_dist():
+    P = np.array(10*np.random.rand(3))
+    v = normalize(np.random.rand(3))
+    n = normalize(np.cross(np.array([1.0,0.0,0.0]),v))
+    w = normalize(np.cross(v,n))
 
+    l = 10.0
+    level_set = 0.1
+    R = 0.5
+    a = [1.0,1.0]
+    b = [4.0,4.0]
+    c = [1.0,1.0]
+
+    seg = sk.Segment(P,v,l,n)
+    f = fl.SegmentField(R,seg,a=a,b=b,c=c)
+
+    Q = f.shoot_ray(P,-v,level_set)
+    print "tangential radius {}".format(nla.norm(Q-P))
+    print "ratio with radius {}".format(nla.norm(Q-P)/R)
 
 
 if __name__=="__main__":
@@ -373,4 +391,5 @@ if __name__=="__main__":
     # test_rad()
     # test_shape()
     # dragon_sym()
-    pgradient()
+    # pgradient()
+    test_tang_dist()

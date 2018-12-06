@@ -656,24 +656,24 @@ class Scaffolder(object):
         g = self.graph
         s = self
 
-        vis.add_points(g.nodes,name="extremities",color=visual.black)
+        vis.add_points(g.nodes,name="extremities_scaff",color=visual.black)
         for i,j in g.edges:
-            vis.add_polyline([g.nodes[i],g.nodes[j]],color=visual.red,name="skeleton")
+            vis.add_polyline([g.nodes[i],g.nodes[j]],color=visual.red,name="skeleton_scaff")
         for i,av in enumerate(s.avs):
             ch,p = s.chs[i],g.nodes[i]
             #radius for current node
             r = self.radii[i]
-            vis.add_points([r*v+p for v in av.values()],name="intersections")
-            if len(av)>1:
-                for j,k in ch.edges:
-                    vis.add_polyline([r*av[g.incident_edges[i][j]]+p,r*av[g.incident_edges[i][k]]+p],color=visual.black,name="edges")
+            vis.add_points([r*v+p for v in av.values()],name="intersections_scaff")
+            # if len(av)>1:
+            #     for j,k in ch.edges:
+            #         vis.add_polyline([r*av[g.incident_edges[i][j]]+p,r*av[g.incident_edges[i][k]]+p],color=visual.black,name="edges_scaff")
 
 
             if len(av)>1:
                 for e in ch.edges:
                     n1,n2,phi = ch.edge_arc[e]
-                    vis.add_polyline([p + r*np.cos(t)*n1 + r*np.sin(t)*n2 for t in np.linspace(0,phi,int(phi/(2.0*np.pi)*50.0)+4)], color=visual.yellow, name="arcs")
-                    vis.add_points([p+r*n1,p+r*np.cos(phi)*n1+r*np.sin(phi)*n2],color=visual.blue,name="voronoi_sites")
+                    vis.add_polyline([p + r*np.cos(t)*n1 + r*np.sin(t)*n2 for t in np.linspace(0,phi,int(phi/(2.0*np.pi)*50.0)+4)], color=visual.yellow, name="arcs_scaff")
+                    vis.add_points([p+r*n1,p+r*np.cos(phi)*n1+r*np.sin(phi)*n2],color=visual.blue,name="voronoi_sites_scaff")
                     n1,n2 = ch.edge_normals[e]
             if len(av)==1:
                 graph_edge,cell = self.node_cells[i].items()[0]
@@ -686,12 +686,12 @@ class Scaffolder(object):
                 n2 /= nla.norm(n2)
                 assert np.isclose(np.dot(n1,n_),0.0),"Dangling cell not on the perp plane"
                 v/=nla.norm(v)
-                vis.add_polyline([p + r*np.cos(t)*n1 + r*np.sin(t)*n2 for t in np.linspace(0,2.0*np.pi)], color=visual.yellow, name="arcs")
+                vis.add_polyline([p + r*np.cos(t)*n1 + r*np.sin(t)*n2 for t in np.linspace(0,2.0*np.pi)], color=visual.yellow, name="arcs_scaff")
 
 
             #plot cells
             for edge in g.incident_edges[i]:
-                cname = ("cell %d,%d,%d" % (i,edge[0],edge[1])) if self.split_output else "cells"
+                cname = ("cell %d,%d,%d _scaff" % (i,edge[0],edge[1])) if self.split_output else "cells_scaff"
                 vis.add_polyline([p+q for q in s.node_cells[i][edge]], color=visual.blue,name=cname )
 
 
@@ -715,20 +715,20 @@ class Scaffolder(object):
                 for i in range(n):
                     i2 = (i+1)%n
                     ps = [p1+dc1[i],p2+cell2[i],p1+dc1[i2],p2+cell2[i2]]
-                    qname = ("quads %d,%d" % edge) + (" %d" % i)
+                    qname = ("quads %d,%d _scaff" % edge) + (" %d" % i)
                     vis.add_mesh(ps,[[0,1,3,2]],color=self.palette[(i+k) % len(self.palette)])
             else:
-                qname = ("quads %d,%d" % edge) if self.split_output else "quads"
+                qname = ("quads %d,%d _scaff" % edge) if self.split_output else "quads_scaff"
 
                 ps = [p1 + q for q in dc1] + [p2 + q for q in cell2]
                 quads = [[l,(l+1)%n,(l+1)%n+n,l+n] for l in range(n)]
 
-                qname = ("quads %d,%d" % edge) if self.split_output else "quads"
+                qname = ("quads %d,%d _scaff" % edge) if self.split_output else "quads _scaff"
                 vis.add_mesh(ps,quads,color="darkolivegreen",name=qname)
 
 
             for p,q in zip(dc1,cell2):
-                mname = ("mesh lines %d,%d" % edge) if self.split_output else "mesh lines"
+                mname = ("mesh_lines %d,%d _scaff" % edge) if self.split_output else "mesh_lines_scaff"
                 vis.add_polyline([p1+p,p2+q],color=visual.cyan,name=mname)
 
         print "TOTAL QUADS IN VISUALIZATION",total_quads
