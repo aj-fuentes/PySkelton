@@ -2,6 +2,7 @@ import numpy as np
 from ._math import *
 import bisect
 import math
+from . import biarcs as ba
 
 class Skeleton(object):
 
@@ -37,7 +38,6 @@ class Skeleton(object):
         if self._extremities is None:
             self._extremities = (self.get_point_at(0.0),self.get_point_at(self.l))
         return self._extremities
-
 
 class Segment(Skeleton):
     """docstring for Segment"""
@@ -212,3 +212,28 @@ class G1Curve(Skeleton):
 
     def get_distance(self,X):
         return min(skel.get_distance(X) for skel in self.skels)
+
+    @classmethod
+    def compute_from_points(klass,As,max_tangent_length=1.0):
+        aa,_,_2 = ba.circular_spline_from_points(As,max_tangent_length=max_tangent_length)
+
+        skel_pieces = []
+        nsegs = 0
+        narcs = 0
+        for i,(C,u,v,r,phi) in enumerate(aa):
+            #if radius is infty then it's a segment
+            if r==np.inf:
+                #C is P, u is tangent, phi is length, and v is normal
+                #of the segment
+                seg = Segment(C,u,phi,v)
+                skel_pieces.append(seg)
+                nsegs+=1
+                # print("segment {} {} {} {}".format(seg.P,seg.v,seg.l,seg.n))
+            else:
+                arc = Arc(C,u,v,r,phi)
+                skel_pieces.append(arc)
+                narcs+=2
+        print("{} segments, {} arcs".format(nsegs,narcs))
+
+        skel = G1Curve(skel_pieces)
+        return skel

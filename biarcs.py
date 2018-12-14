@@ -62,6 +62,15 @@ def compute_biarc(A0,t0,A1,t1):
     assert np.isclose(nla.norm(t0),1.0),"The norm of unit tangent t={} is not 1.0 (={})".format(t0,nla.norm(t0))
     assert np.isclose(nla.norm(t1),1.0),"The norm of unit tangent t={} is not 1.0 (={})".format(t1,nla.norm(t1))
 
+    #if the tangents are equal this is a segment!!
+    if np.isclose(nla.norm(t0-t1),0.0):
+        n = np.cross(t0,np.array([1.0,0.0,0.0]))
+        if np.isclose(nla.norm(n),0):
+            n = np.cross(t0,np.array([0.0,1.0,0.0]))
+        n /= nla.norm(n)
+        fake_arc = (A0,t0,n,np.inf,nla.norm(A1-A0))
+        return [fake_arc]
+
     a = np.dot(t0+t1,t0+t1)-4.0
     b = 2.0*np.dot(t0+t1,A0-A1)
     c = np.dot(A0-A1,A0-A1)
@@ -115,6 +124,57 @@ def plot_biarcs(aa,origin=None,vis=None):
     for P,n1,n2,r,phi in aa:
         arc1 = lambda t: P+n1*np.cos(t)*r+n2*math.sin(t)*r
         plot(arc1,0,phi,name="arcs",color=magenta,origin=O,vis=vis)
+
+
+def circular_spline_from_points(ps,max_tangent_length=1.0):
+    assert len(ps)>2,"Can't get a spline for less than 3 points"
+
+    As = [ps[0]]
+    v = ps[1]-ps[0]
+    v/= nla.norm(v)
+    vs = [v]
+
+    for i in range(1,len(ps)-1):
+        A = ps[i]
+        A_pred = ps[i-1]
+
+        v = A-A_pred
+        d = nla.norm(v)
+        v /= d
+
+        d /= 2.0
+        if d>max_tangent_length:
+            d = max_tangent_length
+
+        B = A-v*d
+        As.append(B)
+        vs.append(v)
+
+        A_succ = ps[i+1]
+
+        v = A_succ-A
+        d = nla.norm(v)
+        v /= d
+
+        d /= 2.0
+        if d>max_tangent_length:
+            d = max_tangent_length
+        else:
+            if i<len(ps)-2:
+                continue #don't add this point because it will be double
+
+        B = A+v*d
+        As.append(B)
+        vs.append(v)
+
+
+
+    As.append(ps[-1])
+    v = ps[-1]-ps[-2]
+    v/= nla.norm(v)
+    vs.append(v)
+
+    return biarcs_from_Hdata(As,vs),As,vs
 
 
 if __name__=="__main__":

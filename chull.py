@@ -89,19 +89,19 @@ class ConvexHull(object):
         #     print line
 
         #neighboring facets to a point
-        self.point_neighbors = [ map(int,f.split())[1:] for f in data[2+number_of_facets : 2+number_of_facets+ps.shape[0]] ]
+        self.point_neighbors = [ list(map(int,f.split()))[1:] for f in data[2+number_of_facets : 2+number_of_facets+ps.shape[0]] ]
         # print "POINT NEIGHBORS"
         # for line in data[2+number_of_facets : 2+number_of_facets+ps.shape[0]]:
         #     print line
 
         #neighboring facets to a point
-        self.facet_neighbors = [ map(int,f.split())[1:] for f in data[3+number_of_facets+ps.shape[0]: 3+2*number_of_facets+ps.shape[0]] ]
+        self.facet_neighbors = [ list(map(int,f.split()))[1:] for f in data[3+number_of_facets+ps.shape[0]: 3+2*number_of_facets+ps.shape[0]] ]
         # print "FACET NEIGHBORS"
         # for line in data[3+number_of_facets+ps.shape[0]: 3+number_of_facets+2*ps.shape[0]]:
         #     print line
 
         #outward normals of the facets
-        self.normals = [ np.array(map(float,n0.split())[:-1]) for n0 in data[5+2*number_of_facets+ps.shape[0]:]  ]
+        self.normals = [ np.array(list(map(float,n0.split()))[:-1]) for n0 in data[5+2*number_of_facets+ps.shape[0]:]  ]
         # print "FACET NORMALS"
         # for line in data[5+number_of_facets+2*ps.shape[0]:]:
         #     print line

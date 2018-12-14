@@ -23,6 +23,8 @@ default_palette = [red,yellow,green,cyan,blue,magenta]
 pastel_palette = [_colors[k] for k in ["pink","peachpuff","lightgoldenrodyellow","palegreen","paleturquoise","lightsteelblue","thistle"]]
 dark_palette = [[(x)/2 for x in color] for color in default_palette]
 
+skel_palette = ["crimson","green","blue","gold","deeppink","darkturquoise","slategray"]
+
 vtk = None
 try:
     import vtk
@@ -459,8 +461,11 @@ class VisualizationAxel(Visualization):
             subprocess.Popen(run)
             time.sleep(3)
 
-    def save(self):
+    def save(self,fname=None):
+        fout = self.output_file
+        self.output_file = fname
         self.show(False)
+        self.output_file = fout
 
 class VisualizationVPython(Visualization):
 
