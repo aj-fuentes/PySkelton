@@ -44,6 +44,9 @@ class Mesher(object):
         self.piece_ps = []
         self.dangling_ps = []
 
+        self.show_gradients = False
+        self.show_normals = False
+
 
     def compute(self):
         if not self.piece_ps:
@@ -166,6 +169,14 @@ class Mesher(object):
             for i in range(N):
                 vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix+"_mesher",color=self.mesh_lines_color)
 
+        if self.show_gradients or self.show_normals:
+            for X in ps:
+                grad = self.field.gradient_eval(X)
+                if self.show_gradients:
+                    vis.add_polyline([X,X+grad],name="gradients_mesher",color="yellow")
+                else:
+                    vis.add_polyline([X,X-normalize(grad)],name="normals_mesher",color="blue")
+
         return vis
 
     def draw_piece_cap(self,vis,ps,color=None,name=None,draw_mesh_lines=True):
@@ -183,6 +194,14 @@ class Mesher(object):
         if draw_mesh_lines:
             for i in range(N):
                 vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix+"_mesher",color=self.mesh_lines_color)
+
+        if self.show_gradients or self.show_normals:
+            for X in ps:
+                grad = self.field.gradient_eval(X)
+                if self.show_gradients:
+                    vis.add_polyline([X,X+grad],name="gradients_mesher",color="yellow")
+                else:
+                    vis.add_polyline([X,X-normalize(grad)],name="normals_mesher",color="blue")
 
         return vis
 

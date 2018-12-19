@@ -10,7 +10,7 @@ _default_radii = np.ones(2,dtype=float)
 _default_angles = np.zeros(2,dtype=float)
 
 _pr_brent = pr.Brentq(epsilon=1e-6)
-_brent = lambda x,a,b: _pr_brent(x,a,b).x0
+_brent = lambda g,a,b: _pr_brent(g,a,b).x0
 # _brent = sco.brentq
 
 class Field(object):
@@ -140,17 +140,23 @@ class SegmentField(Field):
     def eval(self, X):
         return nf.compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
 
-    def parametric_gradient_eval(self, X, vals=[0,1,2,3,4,5,6,7]):
-        da0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,0,self.gsl_ws_size,self.max_error)
-        da1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,1,self.gsl_ws_size,self.max_error)
-        db0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,2,self.gsl_ws_size,self.max_error)
-        db1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,3,self.gsl_ws_size,self.max_error)
-        dc0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,4,self.gsl_ws_size,self.max_error)
-        dc1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,5,self.gsl_ws_size,self.max_error)
-        d_0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,6,self.gsl_ws_size,self.max_error)
-        d_1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,7,self.gsl_ws_size,self.max_error)
-        res = np.array([da0,da1,db0,db1,dc0,dc1,d_0,d_1])
-        return res[vals]
+    def gradient_eval(self,X):
+        g0 = nf.compact_gradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,0,self.gsl_ws_size,self.max_error)
+        g1 = nf.compact_gradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,1,self.gsl_ws_size,self.max_error)
+        g2 = nf.compact_gradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,2,self.gsl_ws_size,self.max_error)
+        return np.array([g0,g1,g2])
+
+    # def parametric_gradient_eval(self, X, vals=[0,1,2,3,4,5,6,7]):
+    #     da0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,0,self.gsl_ws_size,self.max_error)
+    #     da1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,1,self.gsl_ws_size,self.max_error)
+    #     db0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,2,self.gsl_ws_size,self.max_error)
+    #     db1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,3,self.gsl_ws_size,self.max_error)
+    #     dc0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,4,self.gsl_ws_size,self.max_error)
+    #     dc1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,5,self.gsl_ws_size,self.max_error)
+    #     d_0 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,6,self.gsl_ws_size,self.max_error)
+    #     d_1 = nf.compact_pgradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,7,self.gsl_ws_size,self.max_error)
+    #     res = np.array([da0,da1,db0,db1,dc0,dc1,d_0,d_1])
+    #     return res[vals]
 
 class ArcField(Field):
 
@@ -168,6 +174,12 @@ class ArcField(Field):
     def eval(self, X):
         return nf.arc_compact_field_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
 
+    def gradient_eval(self, X):
+        g0 = nf.arc_compact_gradient_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.th,self.max_r,self.R,0,self.gsl_ws_size,self.max_error)
+        g1 = nf.arc_compact_gradient_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.th,self.max_r,self.R,1,self.gsl_ws_size,self.max_error)
+        g2 = nf.arc_compact_gradient_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.th,self.max_r,self.R,2,self.gsl_ws_size,self.max_error)
+        return np.array([g0,g1,g2])
+
 class MultiField(Field):
 
     def __init__(self, fields):
@@ -178,8 +190,8 @@ class MultiField(Field):
     def eval(self,X):
         return sum(f.eval(X) for f in self.fields)
 
-    def parametric_gradient_eval(self, X):
-        return sum(f.eval(X) for f in self.fields)
+    def gradient_eval(self, X):
+        return sum(f.gradient_eval(X) for f in self.fields)
 
 class G1Field(Field):
 
@@ -207,8 +219,8 @@ class G1Field(Field):
     def eval(self,X):
         return sum(f.eval(X) for f in self.fields)
 
-    def parametric_gradient_eval(self, X):
-        return sum(f.eval(X) for f in self.fields)
+    def gradient_eval(self, X):
+        return sum(f.gradient_eval(X) for f in self.fields)
 
 def make_field(R, skel, a=_default_radii, b=_default_radii, c=_default_radii, th=_default_angles, gsl_ws_size=100, max_error=1.0e-8):
     assert isinstance(skel,sk.Skeleton),"<skel> is not a skelton.Skeleton"
@@ -228,6 +240,22 @@ def get_eigenval_param(r,R,level_set,alpha):
 
 def get_radius_param(r,R,level_set,a):
     alpha = 1.0/(a*a)
-    term = alpha*math.pow(0.5*level_set/(alpha*alpha*alpha),2.0/7.0)
-    radius = (r/R) / math.sqrt(1.0 - term)
+    eigenval = get_eigenval_param(r,R,level_set,alpha)
+    # term = alpha*math.pow(0.5*level_set/(alpha*alpha*alpha),2.0/7.0)
+    # radius = (r/R) / math.sqrt(1.0 - term)
+    radius = 1.0/math.sqrt(eigenval)
     return radius
+
+def get_tangential_radius_from_tip_distance(r,R,level_set):
+    y = r/R
+    g = lambda x: 1.0 + (35.0/16.0)*( - x*y + (x*y)**3 - (x*y)**5 + (x*y)**7 ) - x*level_set
+    a = 0.0
+    b = 1.0
+    for b in np.linspace(0.001,1.0/y):
+        if g(b)<0.0: break
+    try:
+        a0 = _brent(g,a,b)
+    except pr.ConvergenceError as e:
+        print("r={} R={} level_set={}".format(r,R,level_set))
+        raise e
+    return a0
