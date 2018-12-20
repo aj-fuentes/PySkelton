@@ -31,9 +31,9 @@ try:
 except:
     print("No vtk in your system")
 
-def get_axel_visualization():
+def get_axel_visualization(axel_path="/user/afuentes/home/Programs/miniconda3/bin/axl"):
     # return VisualizationVPython()
-    return VisualizationAxel()
+    return VisualizationAxel(axel_path)
 
 def _verify_color(color):
     if isinstance(color,str):
@@ -323,7 +323,11 @@ class VisualizationAxel(Visualization):
 
     def write_mesh(self, f, name):
         ps, fs, color = self.meshes[name]
-        ps,inv = np.unique(ps,axis=0,return_inverse=True)
+        # print("Number of points {}".format(len(ps)))
+
+        # ps,inv = np.unique(ps,axis=0,return_inverse=True)
+        # print(inv)
+
 
         f.write('<mesh color="%d %d %d 1" shader="" name="%s" size="0.05">\n' % tuple(color + [name]) )
         f.write('\t<count>%d 0 %d</count>\n' % (len(ps),len(fs)) ) #points edges facets
@@ -334,18 +338,18 @@ class VisualizationAxel(Visualization):
 
         if name in self.normals:
             ns = self.normals[name]
-            if len(ns) != len(ps):
-                print("Error: not the same number of normals and points in the mesh: %" % name)
-            else:
-                f.write('\t<normals>\n')
-                for n in ns:
-                    f.write('\t\t%f %f %f\n' % tuple(n))
-                f.write('\t</normals>\n')
+            # print("Number of normals {}".format(len(ns)))
+            f.write('\t<normals>\n')
+            for i in range(len(ps)):
+                # f.write('\t\t%f %f %f\n' % tuple(ns[inv[i]]))
+                f.write('\t\t%f %f %f\n' % tuple(ns[i]))
+            f.write('\t</normals>\n')
 
         #f.write('\t<edges></edges>\n')
         f.write('\t<faces>\n')
         for fa_ in fs:
-            fa = [inv[x] for x in fa_]
+            # fa = [inv[x] for x in fa_]
+            fa = fa_
             f.write('\t\t%d %s\n' % (len(fa),' '.join(map(str,fa))))
         f.write('\t</faces>\n')
         f.write('</mesh>\n')

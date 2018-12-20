@@ -46,6 +46,7 @@ class Mesher(object):
 
         self.show_gradients = False
         self.show_normals = False
+        self.compute_normals = False
 
 
     def compute(self):
@@ -165,6 +166,10 @@ class Mesher(object):
             name = self.surface_name+suffix
         vis.add_mesh(ps,fs,name=name+"_mesher",color=color)
 
+        if self.compute_normals:
+            norms = [-normalize(self.field.gradient_eval(X)) for X in ps]
+            vis.add_normals(norms,name=name+"_mesher")
+
         if draw_mesh_lines:
             for i in range(N):
                 vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix+"_mesher",color=self.mesh_lines_color)
@@ -175,7 +180,7 @@ class Mesher(object):
                 if self.show_gradients:
                     vis.add_polyline([X,X+grad],name="gradients_mesher",color="yellow")
                 else:
-                    vis.add_polyline([X,X-normalize(grad)],name="normals_mesher",color="blue")
+                    vis.add_polyline([X,X-0.1*normalize(grad)],name="normals_mesher",color="blue")
 
         return vis
 
@@ -191,6 +196,12 @@ class Mesher(object):
             name = self.surface_name+suffix
         vis.add_mesh(ps,fs,name=name+"_mesher",color=color)
 
+        if self.compute_normals:
+            norms = [-normalize(self.field.gradient_eval(X)) for X in ps]
+            vis.add_normals(norms,name=name+"_mesher")
+            # for X,normal in zip(ps,norms):
+            #     vis.add_polyline([X,X+normal],name="nomals_caps",color="yellow")
+
         if draw_mesh_lines:
             for i in range(N):
                 vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix+"_mesher",color=self.mesh_lines_color)
@@ -201,7 +212,7 @@ class Mesher(object):
                 if self.show_gradients:
                     vis.add_polyline([X,X+grad],name="gradients_mesher",color="yellow")
                 else:
-                    vis.add_polyline([X,X-normalize(grad)],name="normals_mesher",color="blue")
+                    vis.add_polyline([X,X-0.1*normalize(grad)],name="normals_mesher",color="blue")
 
         return vis
 
@@ -226,11 +237,14 @@ class Mesher(object):
         cell = self.scaff.node_cells[i][e][:-1]
 
         j = e[0] if e[0]!=i else e[1]
+        reverse = e[0]==i
         Q = self.scaff.graph.nodes[j]
         v = normalize(P-Q)
 
         N = self.cap_quads_num + 1
         ts = np.linspace(0.0,np.pi/2.0,N)
+        if reverse:
+            ts = list(reversed(ts))
 
         Ps = itertools.repeat(P) #Points
         _r = None

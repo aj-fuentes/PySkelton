@@ -64,7 +64,7 @@ class Graph(object):
         return [i for i in range(len(self.nodes)) if self.is_articulation(i)]
 
     def get_dangling_indices(self):
-        return list(filter(self.is_dangling,list(range(len(self.nodes))))) # [i for i in range(len(self.nodes)) if self.is_dangling(i)]
+        return list(filter(self.is_dangling,range(len(self.nodes)))) # [i for i in range(len(self.nodes)) if self.is_dangling(i)]
 
     def find_node_from_point(self, p):
         for i,q in enumerate(self.nodes):
