@@ -2,18 +2,17 @@ import numpy as np
 import numpy.linalg as nla
 from ._math import *
 from .visualization import skel_palette
-import math
 
 from multiprocessing import Pool
 import itertools
-
-from . import skeleton as sk
 
 _extra_dist = np.array([5.0,0.0,0.0])
 
 def _shoot_ray(args):
     f,(u,Q,guess_r),level_set,double_distance = args
-    return f.shoot_ray(Q,u,level_set,double_distance,guess_r)
+    point = f.shoot_ray(Q,u,level_set,double_distance,guess_r)
+    grad  = f.gradient_eval(point)
+    return point,grad
 
 class Mesher(object):
     """docstring for Mesher"""
@@ -154,7 +153,9 @@ class Mesher(object):
     def shoot_ray(self,data):
         return [self.field.shoot_ray(Q,v,self.level_set,self.shoot_double_distance,guess_r) for (v,Q,guess_r) in data]
 
-    def draw_piece(self,vis,ps,skel,color=None,name=None,draw_mesh_lines=True):
+    def draw_piece(self,vis,pgs,skel,color=None,name=None,draw_mesh_lines=True):
+        ps = [pg[0] for pg in pgs]
+        grads = [pg[1] for pg in pgs]
         M = self.get_shooting_num(skel)
         N = len(ps)//M
         fs = [[i*M + j, i*M + (j+1),((i+1)%N)*M + (j+1),((i+1)%N)*M + j ] for i in range(N) for j in range(M-1)]
@@ -166,25 +167,26 @@ class Mesher(object):
             name = self.surface_name+suffix
         vis.add_mesh(ps,fs,name=name+"_mesher",color=color)
 
-        if self.compute_normals:
-            norms = [-normalize(self.field.gradient_eval(X)) for X in ps]
-            vis.add_normals(norms,name=name+"_mesher")
+        #add normals to the visualization
+        vis.add_normals([-normalize(grad) for grad in grads],name=name+"_mesher")
 
         if draw_mesh_lines:
             for i in range(N):
                 vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix+"_mesher",color=self.mesh_lines_color)
 
-        if self.show_gradients or self.show_normals:
-            for X in ps:
-                grad = self.field.gradient_eval(X)
-                if self.show_gradients:
-                    vis.add_polyline([X,X+grad],name="gradients_mesher",color="yellow")
-                else:
-                    vis.add_polyline([X,X-0.1*normalize(grad)],name="normals_mesher",color="blue")
+
+        for X,grad in zip(ps,grads):
+            if self.show_gradients:
+                vis.add_polyline([X,X+grad],name="gradients_mesher",color="yellow")
+            else:
+                vis.add_polyline([X,X-0.1*normalize(grad)],name="normals_mesher",color="blue")
 
         return vis
 
-    def draw_piece_cap(self,vis,ps,color=None,name=None,draw_mesh_lines=True):
+    def draw_piece_cap(self,vis,pgs,color=None,name=None,draw_mesh_lines=True):
+        ps = [pg[0] for pg in pgs]
+        grads = [pg[1] for pg in pgs]
+
         M = self.cap_quads_num + 1
         N = len(ps)//M
         fs = [[i*M + j, i*M + (j+1),((i+1)%N)*M + (j+1),((i+1)%N)*M + j ] for i in range(N) for j in range(M-1)]
@@ -196,23 +198,18 @@ class Mesher(object):
             name = self.surface_name+suffix
         vis.add_mesh(ps,fs,name=name+"_mesher",color=color)
 
-        if self.compute_normals:
-            norms = [-normalize(self.field.gradient_eval(X)) for X in ps]
-            vis.add_normals(norms,name=name+"_mesher")
-            # for X,normal in zip(ps,norms):
-            #     vis.add_polyline([X,X+normal],name="nomals_caps",color="yellow")
+        #add normals to the visualization
+        vis.add_normals([-normalize(grad) for grad in grads],name=name+"_mesher")
 
         if draw_mesh_lines:
             for i in range(N):
                 vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix+"_mesher",color=self.mesh_lines_color)
 
-        if self.show_gradients or self.show_normals:
-            for X in ps:
-                grad = self.field.gradient_eval(X)
-                if self.show_gradients:
-                    vis.add_polyline([X,X+grad],name="gradients_mesher",color="yellow")
-                else:
-                    vis.add_polyline([X,X-0.1*normalize(grad)],name="normals_mesher",color="blue")
+        for X,grad in zip(ps,grads):
+            if self.show_gradients:
+                vis.add_polyline([X,X+grad],name="gradients_mesher",color="yellow")
+            else:
+                vis.add_polyline([X,X-0.1*normalize(grad)],name="normals_mesher",color="blue")
 
         return vis
 
@@ -236,15 +233,18 @@ class Mesher(object):
 
         cell = self.scaff.node_cells[i][e][:-1]
 
-        j = e[0] if e[0]!=i else e[1]
-        reverse = e[0]==i
-        Q = self.scaff.graph.nodes[j]
-        v = normalize(P-Q)
+        j = e[0]
+        if j==i: j = e[1]
+        v = normalize(P-self.scaff.graph.nodes[j])
 
         N = self.cap_quads_num + 1
         ts = np.linspace(0.0,np.pi/2.0,N)
-        if reverse:
+
+        #check for the right order in the faces
+        u0,u1 = cell[0],cell[1]
+        if np.dot(v,np.cross(u0,u1))>0.0:
             ts = list(reversed(ts))
+
 
         Ps = itertools.repeat(P) #Points
         _r = None
