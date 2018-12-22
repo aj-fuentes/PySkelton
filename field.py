@@ -205,12 +205,15 @@ class G1Field(Field):
 
         L = curve.l
         self.fields = []
+        # print("total a={} b={} c={} th={}".format(self.a,self.b,self.c,self.th))
         for angle,l,skel in zip(curve.angles,curve.ls,curve.skels):
-            l2 = l+skel.l
-            a = convex_combination(self.a,l,l2,L)
-            b = convex_combination(self.b,l,l2,L)
-            c = convex_combination(self.c,l,l2,L)
-            th2 = convex_combination(self.th+angle,l,l2,L)
+            l1 = l-skel.l
+            l2 = l
+            a = convex_combination(self.a,l1,l2,L)
+            b = convex_combination(self.b,l1,l2,L)
+            c = convex_combination(self.c,l1,l2,L)
+            th2 = convex_combination(self.th+angle,l1,l2,L)
+            # print("piece a={} b={} c={} th={}".format(a,b,c,th2))
             if isinstance(skel,sk.Segment):
                 self.fields.append(SegmentField(R,skel,a,b,c,th2))
             elif isinstance(skel,sk.Arc):
