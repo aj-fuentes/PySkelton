@@ -35,7 +35,7 @@ class Graph(object):
         return len(self.incident_edges[i])>2
 
     def is_dangling(self, i):
-        return len(self.incident_edges[i])<2
+        return len(self.incident_edges[i])==1
 
     def is_articulation(self, i):
         return len(self.incident_edges[i])==2

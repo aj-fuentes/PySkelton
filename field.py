@@ -75,16 +75,30 @@ class Field(object):
             iters -= 1
             if iters==0: raise ValueError("No intersection for point Q={} and vector m={} for maximum radius R={}".format(Q,m,R))
 
-        #take es upper limit the negative point
+        #take as upper limit the negative point
         upp = x
         #with the right interval compute the root
-        upp = _brent(g,0.0,upp)
+        try:
+            upp = _brent(g,0.0,upp)
+        except pr.utils.ConvergenceError as e:
+            if e.args[0]!="Bracket is smaller than tolerance.":
+                raise pr.utils.ConvergenceError(e.args) from e
+            else:
+                upp *= 0.5
 
         iters = max_iters
         x = find_negative_point(0.0,upp)
         while not (x is None):
             # print "Searching for new root closer than {}".format(x)
-            upp = _brent(g,0.0,x)
+            try:
+                upp = _brent(g,0.0,x)
+            except pr.utils.ConvergenceError as e:
+                if e.args[0]!="Bracket is smaller than tolerance.":
+                    raise pr.utils.ConvergenceError(e.args) from e
+                else:
+                    upp = 0.5*x
+                    break
+
             x = find_negative_point(low,upp)
             iters-=1
             if iters==0: break
@@ -186,12 +200,20 @@ class MultiField(Field):
 
         self.fields = fields
         self.R = max(f.R for f in fields)
+        self.coeffs = [1.0]*len(fields)
 
     def eval(self,X):
-        return sum(f.eval(X) for f in self.fields)
+        return sum(c*f.eval(X) for c,f in zip(self.coeffs,self.fields))
 
     def gradient_eval(self, X):
-        return sum(f.gradient_eval(X) for f in self.fields)
+        return sum(c*f.gradient_eval(X) for c,f in zip(self.coeffs,self.fields))
+
+    def set_coeff(self,i,c):
+        self.coeffs[i] = c
+
+    def set_coeffs(self,cs):
+        assert len(cs)==len(self.fields),"Number of coeffs must be equal to the number of fields"
+        self.coeffs = cs
 
 class G1Field(Field):
 

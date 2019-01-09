@@ -73,8 +73,8 @@ class Scaffolder(object):
         self.cross_profiles = set()
 
         #limit angle for long arcs
-        self.long_arc_angle = 5.0*np.pi/6.0
-        self.long_arcs_subdiv = 2
+        self.long_arc_angle = 0.9*np.pi
+        # self.long_arcs_subdiv = 2
 
 
     def compute_scaffold(self):
@@ -224,11 +224,15 @@ class Scaffolder(object):
         #general variables
         vs = ["x%di%dj%d" % (i,k,l) for (k,l) in ch.edges]
         #long arc variables
-        long_vs = set()
+        long_vs_arclen = {}
         #dangling nodes do not qualify as long arc (they are a full cell)
         if len(ch.points)>1:
-            long_vs = set("x%di%dj%d" % (i,e[0],e[1]) for e in ch.edges if ch.edge_arc[e][2]>self.long_arc_angle)
-        return vs,long_vs
+            for e in ch.edges:
+                if ch.edge_arc[e][2]>self.long_arc_angle:
+                    # print("edge {} len={} greater than max={}".format(e,ch.edge_arc[e][2],self.long_arc_angle))
+                    long_vs_arclen["x%di%dj%d" % (i,e[0],e[1])] = ch.edge_arc[e][2]
+            #long_vs = set("x%di%dj%d" % (i,e[0],e[1]) for e in ch.edges if ch.edge_arc[e][2]>self.long_arc_angle)
+        return vs,long_vs_arclen
 
     def generate_IP(self):
 
@@ -246,15 +250,15 @@ class Scaffolder(object):
 
             for i,ch in enumerate(self.chs):
                 nn = len(ch.points)
-                vs,long_vs = self.generate_lp_variables(i,ch)
+                vs,long_vs_arclen = self.generate_lp_variables(i,ch)
                 vars_to_display.extend(vs)
                 for var in vs:
                     #generate the definition of the variable
                     if not ch.planar:
                         #define the number of subdivisions for arcs
                         var_subdiv = 1
-                        if (var in long_vs):
-                            var_subdiv = self.long_arcs_subdiv
+                        if (var in long_vs_arclen):
+                            var_subdiv = int(long_vs_arclen[var]/self.long_arc_angle)+1
                         f.write("var %s, integer, >= %d;\n" % (var, var_subdiv) )
 
                     else:
@@ -262,14 +266,17 @@ class Scaffolder(object):
                         #at least min_subdivs times
                         if nn<=2:
                             #articulations must have at least min_subdivs
-                            f.write("var %s, integer, >= %d;\n" % (var, self.min_subdivs) )
+                            var_subdiv = self.min_subdivs
+                            var_subdiv = int(max(var_subdiv,2.0*np.pi/self.long_arc_angle))
+                            f.write("var %s, integer, >= %d;\n" % (var, var_subdiv) )
                         #planar-convex-hull joints must be subdivided at least 2 times
                         #or according to the long_arc_angle
                         else:
                             planar_subdivs = 2
                             #if pi quilifies as long arcs
                             if np.pi>self.long_arc_angle:
-                                planar_subdivs = max(planar_subdivs,self.long_arcs_subdiv)
+                                planar_subdivs = max(planar_subdivs,self.long_arc_angle)
+                                planar_subdivs = int(max(planar_subdivs,np.pi/self.long_arc_angle))
                             f.write("var %s, integer, >= %d;\n" % (var, planar_subdivs) )
 
 

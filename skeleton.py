@@ -132,6 +132,7 @@ class G1Curve(Skeleton):
         self.skels = skels
         #compute commulative sum
         for i in range(1,len(skels)): self.ls[i]+=self.ls[i-1]
+        assert sum(skel.l for skel in skels)==self.ls[-1],"Wrong g1curve length"
         super(G1Curve, self).__init__(self.ls[-1])
 
         for i in range(1,len(skels)):

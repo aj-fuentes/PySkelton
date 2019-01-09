@@ -2,9 +2,69 @@ import numpy as np
 import numpy.linalg as nla
 from ._math import *
 from .visualization import skel_palette
+from .graph import Graph
+from .field import SegmentField,ArcField,G1Field,MultiField
+from .skeleton import Segment,Arc
 
 from multiprocessing import Pool
 import itertools
+
+
+def graph_and_pieces_from_field(field):
+    pieces = []
+    g = Graph()
+
+    f = field
+    if isinstance(f,SegmentField):
+        i,j = g.add_node(f.skel.extremities[0]),g.add_node(f.skel.extremities[1])
+        g.add_edge(i,j)
+
+        pieces.append((f.skel,[i,j]))
+
+    elif isinstance(f,ArcField):
+        nodes = arc_to_nodes(f.skel.C,f.skel.u,f.skel.v,f.skel.r,f.skel.phi)
+        idxs = [g.add_node(node) for node in nodes]
+        g.add_edge(idxs[0],idxs[1])
+        g.add_edge(idxs[1],idxs[2])
+        g.add_edge(idxs[2],idxs[3])
+
+        pieces.append((f.skel,idxs))
+
+    elif isinstance(f,G1Field):
+        full_idxs = []
+        for skel in f.skel.skels:
+            if isinstance(skel,Segment):
+                i,j = g.add_node(skel.extremities[0]),g.add_node(skel.extremities[1])
+                g.add_edge(i,j)
+                full_idxs.append(i)
+                full_idxs.append(j)
+            elif isinstance(skel,Arc):
+                nodes = arc_to_nodes(skel.C,skel.u,skel.v,skel.r,skel.phi)
+                idxs = [g.add_node(node) for node in nodes]
+                g.add_edge(idxs[0],idxs[1])
+                g.add_edge(idxs[1],idxs[2])
+                g.add_edge(idxs[2],idxs[3])
+                full_idxs.extend(idxs)
+            else: assert False,"G1 curve pieces must be arcs or segments"
+
+        pieces.append((f.skel,[full_idxs[0],full_idxs[1],full_idxs[-2],full_idxs[-1]]))
+
+    elif isinstance(f,MultiField):
+        for f in f.fields:
+            g0,pieces0 = graph_and_pieces_from_field(f)
+            for i0,j0 in g0.edges:
+                i,j = g.add_node(g0.nodes[i0]),g.add_node(g0.nodes[j0])
+                g.add_edge(i,j)
+            for skel0,idxs0 in pieces0:
+                idxs = [
+                    g.find_node_from_point(g0.nodes[idxs0[0]]),
+                    g.find_node_from_point(g0.nodes[idxs0[1]]),
+                    g.find_node_from_point(g0.nodes[idxs0[-2]]),
+                    g.find_node_from_point(g0.nodes[idxs0[-1]])
+                ]
+                pieces.append((skel0,idxs))
+
+    return g,pieces
 
 _extra_dist = np.array([5.0,0.0,0.0])
 
@@ -165,6 +225,17 @@ class Mesher(object):
             color = self.surface_color
         if name is None:
             name = self.surface_name+suffix
+
+        #check for the right order in the faces
+        new_fs = []
+        for f in fs:
+            u0,u1 = ps[f[1]]-ps[f[0]],ps[f[3]]-ps[f[0]]
+            u0,u1 = normalize(u0),normalize(u1)
+            if np.dot(grads[f[0]],np.cross(u0,u1))>0.0:
+                #reverse the faces!!
+                f = [f[0],f[3],f[2],f[1]]
+            new_fs.append(f)
+        fs = new_fs
         vis.add_mesh(ps,fs,name=name+"_mesher",color=color)
 
         #add normals to the visualization
@@ -174,12 +245,12 @@ class Mesher(object):
             for i in range(N):
                 vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix+"_mesher",color=self.mesh_lines_color)
 
-
-        for X,grad in zip(ps,grads):
-            if self.show_gradients:
-                vis.add_polyline([X,X+grad],name="gradients_mesher",color="yellow")
-            else:
-                vis.add_polyline([X,X-0.1*normalize(grad)],name="normals_mesher",color="blue")
+        if self.show_gradients or self.show_normals:
+            for X,grad in zip(ps,grads):
+                if self.show_gradients:
+                    vis.add_polyline([X,X+grad],name="gradients_mesher",color="yellow")
+                else:
+                    vis.add_polyline([X,X-0.1*normalize(grad)],name="normals_mesher",color="blue")
 
         return vis
 
@@ -205,11 +276,12 @@ class Mesher(object):
             for i in range(N):
                 vis.add_polyline(ps[i*M:i*M+M],name=self.mesh_lines_name+suffix+"_mesher",color=self.mesh_lines_color)
 
-        for X,grad in zip(ps,grads):
-            if self.show_gradients:
-                vis.add_polyline([X,X+grad],name="gradients_mesher",color="yellow")
-            else:
-                vis.add_polyline([X,X-0.1*normalize(grad)],name="normals_mesher",color="blue")
+        if self.show_gradients or self.show_normals:
+            for X,grad in zip(ps,grads):
+                if self.show_gradients:
+                    vis.add_polyline([X,X+grad],name="gradients_mesher",color="yellow")
+                else:
+                    vis.add_polyline([X,X-0.1*normalize(grad)],name="normals_mesher",color="blue")
 
         return vis
 
