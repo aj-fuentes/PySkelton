@@ -2,3 +2,6 @@
 *.log
 *.so
 *.bak
+dist/*
+build/*
+PySkelton.egg-info/*
