@@ -22,6 +22,6 @@ System:
 
 ## Build
 
-In order to use Anisotropic Convolution Surfaces we need to build first the numerical inetegration code (in C). For that just run `make` to build tehe .c files into field\_eval.so shared library that is used by nformulas.py
+In order to use Anisotropic Convolution Surfaces we need to build first the numerical integration code (in C). For that just run `make` to build all the `*.c` files into `field\_eval.so` shared library that is used by `nformulas.py`.
 
 
