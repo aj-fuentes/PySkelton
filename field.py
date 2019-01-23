@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 import math
 import numpy as np
+import numpy.linalg as nla
 
 from . import skeleton as sk
 from . import nformulas as nf

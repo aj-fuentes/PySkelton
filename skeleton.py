@@ -45,13 +45,16 @@ class Segment(Skeleton):
         super(Segment, self).__init__(l)
 
         check_unit(v)
+        check_unit(n)
+        assert np.isclose(np.dot(v,n),0.0),"Non perp tangent - normal"
 
         self.P = np.array(P)
         self.v = np.array(v)
         self.l = float(l)
         self.n = np.array(n)
 
-        self.binormal = np.cross(v,n)
+        self.binormal = normalize(np.cross(v,n))
+        check_unit(self.binormal)
 
         self.F = np.matrix([v,n,self.binormal]).T
 
@@ -150,10 +153,27 @@ class G1Curve(Skeleton):
             N0 = self.skels[i-1].get_normal_at(self.skels[i-1].l)
             B0 = self.skels[i-1].get_binormal_at(self.skels[i-1].l)
 
+            assert np.isclose(nla.norm(T0),1.0),"Non unit tangent"
+            assert np.isclose(nla.norm(N0),1.0),"Non unit normal"
+            assert np.isclose(nla.norm(B0),1.0),"Non unit binormal"
+
+            assert np.isclose(np.dot(T0,N0),0.0),"Non perp tangent - normal"
+            assert np.isclose(np.dot(T0,B0),0.0),"Non perp tangent - binormal"
+            assert np.isclose(np.dot(N0,B0),0.0),"Non perp normal - binormal"
+
+
             #get the frame of current piece at the beginning
             T1 = self.skels[i].get_tangent_at(0.0)
             N1 = self.skels[i].get_normal_at(0.0)
             B1 = self.skels[i].get_binormal_at(0.0)
+
+            assert np.isclose(nla.norm(T1),1.0),"Non unit tangent"
+            assert np.isclose(nla.norm(N1),1.0),"Non unit normal"
+            assert np.isclose(nla.norm(B1),1.0),"Non unit binormal"
+
+            assert np.isclose(np.dot(T1,N1),0.0),"Non perp tangent - normal"
+            assert np.isclose(np.dot(T1,B1),0.0),"Non perp tangent - binormal"
+            assert np.isclose(np.dot(N1,B1),0.0),"Non perp normal - binormal"
 
             assert np.isclose(nla.norm(T0-T1),0.0),"Tangents do not coincide"
 
@@ -162,13 +182,20 @@ class G1Curve(Skeleton):
 
             #previous frame was rotated, thus recompute normal
             N = N0*math.cos(angle) + B0*math.sin(angle)
+            assert np.isclose(nla.norm(N),1.0),"Non unit rotated normal"
 
             #compute the angle between the current frame and the recomputed previous normal
             angle = math.atan2(np.dot(N,B1),np.dot(N,N1))
             self.angles.append(angle)
 
+            assert np.allclose(N,math.cos(angle)*N1+math.sin(angle)*B1),"Atan2 computation is wrong"
+
             Ne = math.cos(self.angles[-2])*N0 + math.sin(self.angles[-2])*B0
             Ni = math.cos(self.angles[-1])*N1 + math.sin(self.angles[-1])*B1
+
+            assert np.isclose(nla.norm(Ne),1.0),"Non unit normal"
+            assert np.isclose(nla.norm(Ni),1.0),"Non unit normal"
+
             assert np.isclose(nla.norm(Ne-Ni),0.0),"Frames not rotated correctly to ensure continuity"
 
             Be = -math.sin(self.angles[-2])*N0 + math.cos(self.angles[-2])*B0
@@ -215,7 +242,7 @@ class G1Curve(Skeleton):
         return min(skel.get_distance(X) for skel in self.skels)
 
     @classmethod
-    def compute_from_points(klass,As,max_tangent_length=1.0):
+    def compute_from_points(klass,As,max_tangent_length=1.0,initial_normal=None):
         aa,_,_2 = ba.circular_spline_from_points(As,max_tangent_length=max_tangent_length)
 
         skel_pieces = []
@@ -224,8 +251,9 @@ class G1Curve(Skeleton):
         for i,(C,u,v,r,phi) in enumerate(aa):
             #if radius is infty then it's a segment
             if r==np.inf:
-                #C is P, u is tangent, phi is length, and v is normal
-                #of the segment
+                #C is P, u is tangent, phi is length, and v is normal of the segment
+                if (i==0) and (not (initial_normal is None)):
+                    v = initial_normal
                 seg = Segment(C,u,phi,v)
                 skel_pieces.append(seg)
                 nsegs+=1
