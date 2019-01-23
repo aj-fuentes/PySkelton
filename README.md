@@ -12,13 +12,10 @@ Python:
  * **pyhull:** convex hull computations
  * **numpy:** numerics, linear algebra, vectors
  * **pyroots:** non-derivate root computation (BrentQ method)
- * **other**
+ * **swiglpk:** (Gnu Linear Programming Kit) mixed integer linear solver
 
 C:
  * **GSL:** (Gnu Scientific Library) numerical integration
-
-System:
- * **GLPK:** (Gnu Linear Programming Kit) mixed integer linear solver
 
 ## Build
 
