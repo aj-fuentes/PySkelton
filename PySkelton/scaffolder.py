@@ -77,6 +77,13 @@ class Scaffolder(object):
         self.long_arc_angle = 0.9*np.pi
         # self.long_arcs_subdiv = 2
 
+    @property
+    def min_cell_quads(self):
+        return self.min_subdivs
+
+    @min_cell_quads.setter
+    def min_cell_quads(self,x):
+        self.min_subdivs = x
 
     def compute_scaffold(self):
 
