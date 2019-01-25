@@ -6,11 +6,12 @@ from setuptools.command.install import install
 class PySkeltonInstall(install):
 
     def run(self):
-        self.compile_lib()
         super().run()
+        self.compile_lib()
 
     def compile_lib(self):
         wd = self.install_lib + "PySkelton"
+        # print(f"----- The building is here: {wd} -----")
         subprocess.run(["make", "field_eval"],cwd=wd,shell=True)
 
 with open("README.md", "r") as fh:
