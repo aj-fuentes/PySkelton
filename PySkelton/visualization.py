@@ -204,6 +204,18 @@ class VisualizationAxel(Visualization):
                 self.write_polyline(f,name)
             for name in list(self.points.keys()):
                 self.write_points(f,name)
+            # f.write("<view>\n")
+            # f.write("\t<color>1 1 1</color>\n")
+            # f.write("\t<gradient>off</gradient>\n")
+            # f.write("\t<axis>off</axis>\n")
+            # f.write("\t<mode>perspective</mode>\n")
+            # f.write('\t<camera>\n')
+            # f.write('\t\t<position y="0" z="23.2385" x="0"/>\n')
+            # f.write('\t\t<focal y="0" z="0" x="0"/>\n')
+            # f.write('\t\t<viewUp y="1" z="0" x="0"/>\n')
+            # f.write('\t\t<viewAngle>30</viewAngle>\n')
+            # f.write('\t</camera>\n')
+            # f.write("</view>\n")
             f.write('</axl>\n')
         if save_and_show:
             #subprocess.call([self.axel_path, 'vis.axl'])

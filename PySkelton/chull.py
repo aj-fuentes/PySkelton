@@ -31,6 +31,7 @@ class ConvexHull(object):
 
         ps = self.points
 
+        self.planar = len(ps)<=2
         if len(ps)==1:
             self.edges.add( (0,0) ) #phantom edge
             self.point_edges[0].append((0,0)) #only one edge

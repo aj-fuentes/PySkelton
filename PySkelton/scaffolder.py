@@ -6,6 +6,7 @@ import os
 
 import numpy as np
 import numpy.linalg as nla
+import swiglpk as glpk
 
 from .graph import Graph
 from .chull import ConvexHull
@@ -76,6 +77,13 @@ class Scaffolder(object):
         self.long_arc_angle = 0.9*np.pi
         # self.long_arcs_subdiv = 2
 
+    @property
+    def min_cell_quads(self):
+        return self.min_subdivs
+
+    @min_cell_quads.setter
+    def min_cell_quads(self,x):
+        self.min_subdivs = x
 
     def compute_scaffold(self):
 
@@ -356,6 +364,46 @@ class Scaffolder(object):
                 #     self.solution[n][(i,j)] *= 2
 
     def solve_IP(self):
+        #clear solution file
+        open("lp.sol","w").close()
+
+        #create the LP
+        lp = glpk.glp_create_prob()
+
+        #create the model translator
+        tran = glpk.glp_mpl_alloc_wksp()
+
+        #read the model intro translator
+        glpk.glp_mpl_read_model(tran, "lp.mod", 0);
+        #generate the model
+        glpk.glp_mpl_generate(tran, None);
+        #build the LP from the model
+        glpk.glp_mpl_build_prob(tran, lp)
+
+        #create and init params for MIP solver
+        params = glpk.glp_iocp()
+        glpk.glp_init_iocp(params)
+        params.presolve = glpk.GLP_ON
+
+        #solve the MIP
+        glpk.glp_intopt(lp,params);
+
+        #save solution
+        #glpk.glp_write_sol(lp,"lp2.sol")
+        glpk.glp_mpl_postsolve(tran,lp,glpk.GLP_MIP)
+
+        #free resources
+        glpk.glp_mpl_free_wksp(tran)
+        glpk.glp_delete_prob(lp)
+
+        #read solution from model
+        self.read_solution()
+
+        #delete model and solution files
+        os.remove("lp.mod")
+        os.remove("lp.sol")
+
+    def solve_IP_orig(self):
         open("lp.sol","w").close()
         # sp.call(["glpsol","--model","lp.mod"])
         sp.call(["glpsol","--model","lp.mod","--log","lp.log"])

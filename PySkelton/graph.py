@@ -15,6 +15,7 @@ class Graph(object):
         self.data = collections.defaultdict(lambda: [])
 
     def add_node(self,point):
+        point = np.array(point)
         idx = self.find_node_from_point(point)
         if idx==-1:
             idx = len(self.nodes)

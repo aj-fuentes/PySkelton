@@ -82,6 +82,7 @@ class Segment(Skeleton):
 
     @staticmethod
     def make_segment(A,B,n):
+        A,B,n = np.array(A),np.array(B),np.array(n)
         v = B-A
         l = norm(v)
         v /= l

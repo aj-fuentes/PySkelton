@@ -5,6 +5,7 @@ from math import *
 make_edge = lambda i,j: (i,j) if i<j else (j,i)
 
 norm = nla.norm
+pi = np.pi
 # norm = lambda x: sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2])
 
 def normalize(v):
