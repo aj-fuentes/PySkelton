@@ -123,6 +123,8 @@ class VisualizationAxel(Visualization):
 
         self.output_file = output_file
         self.axel_path = axel_path
+        #old axel path:
+        #"env LD_LIBRARY_PATH=/home/afuentes/Programs/Axel/lib64:/home/afuentes/Programs/Axel/lib:/user/afuentes/home/Work/Building/qt5.9-install/5.9.2/gcc_64/lib/ /home/afuentes/Programs/Axel/bin/axel"
 
     def write_mesh(self, f, name):
         ps, fs, color = self.meshes[name]
