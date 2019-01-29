@@ -17,6 +17,9 @@ equal = lambda x,y: np.isclose(nla.norm(x-y),0)
 
 
 def arc_to_nodes(C,u,v,r,phi):
+
+    C,u,v = np.array(C),np.array(u),np.array(v)
+
     R = r/np.cos(phi*0.25)
 
     n1 = C + r*(                 u                     )
