@@ -15,14 +15,20 @@ vector_2d_double = np.ctypeslib.ndpointer(dtype=np.double,ndim=1,shape=(2,),flag
 
 # field_eval_path = "/user/afuentes/home/Work/Convolution/code/python/package/field_eval.so"
 path = os.path.dirname(os.path.abspath(inspect.getsourcefile(lambda:0)))
+field_eval_static_path = path + os.path.sep + "field_eval_static.so"
 field_eval_path = path + os.path.sep + "field_eval.so"
 field_eval_lib = None
-try:
-    field_eval_lib = ctypes.cdll.LoadLibrary(field_eval_path)
-except OSError:
-    print("There is no convolution library. Maybe it did not compile.\nCheck makefile and do `make field_eval` in:\n{}.".format(path))
 
-if not field_eval_lib is None:
+try:
+    field_eval_lib = ctypes.cdll.LoadLibrary(field_eval_static_path)
+except OSError:
+    print("Could not load statically linked convolution library. Trying with dynamically linked one. For this to work you must have GSL installed in your system.")
+    try:
+        field_eval_lib = ctypes.cdll.LoadLibrary(field_eval_path)
+    except OSError:
+        print("There is no convolution library. Maybe it did not compile.\nCheck makefile and do `make field_eval` in: {}.".format(path))
+
+if not (field_eval_lib is None):
 
     #declare the eval fucntion in the library
     compact_field_eval = field_eval_lib.compact_field_eval
