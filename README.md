@@ -15,11 +15,17 @@ Python:
  * **pyroots:** non-derivate root computation (BrentQ method)
  * **swiglpk:** (Gnu Linear Programming Kit) mixed integer linear solver
 
-C:
- * **GSL:** (Gnu Scientific Library) numerical integration
-
 ## Build
 
-In order to use Anisotropic Convolution Surfaces we need to build first the numerical integration code (in C). For that just run `make` to build all the `*.c` files into `field\_eval.so` shared library that is used by `nformulas.py`.
+In order to use Anisotropic Convolution Surfaces we need to build first the numerical integration code (in C). For that just run `make field_eval_static` in **PySkelton** source folder (`./PySkelton`) to build all the `*.c` files into `field\_eval\_static.so` shared library that is used by `nformulas.py`. This library implements the numerical integration, and uses *GNU Scientific Library* integration routines from the static library `libgsl.a`.
 
+Failure to build the shared library will prevent the use of anisotropic convolution (`PySkelton.Field`,`PySkelton.Mesher`), but the scaffolding algorithm should be fine.
+
+## Intall python package
+
+The python package can be bulins and installed by running
+```shell
+python setup.py sdist
+python setup.py install
+```
 
