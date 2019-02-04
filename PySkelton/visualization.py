@@ -228,7 +228,8 @@ class VisualizationAxel(Visualization):
 
     def save(self,fname=None):
         fout = self.output_file
-        self.output_file = fname
+        if fname:
+            self.output_file = fname
         self.show(False)
         self.output_file = fout
 
