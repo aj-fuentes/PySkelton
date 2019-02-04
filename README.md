@@ -17,7 +17,7 @@ Python:
 
 ## Build
 
-In order to use Anisotropic Convolution Surfaces we need to build first the numerical integration code (in C). For that just run `make field_eval_static` in **PySkelton** source folder (`./PySkelton`) to build all the `*.c` files into `field\_eval\_static.so` shared library that is used by `nformulas.py`. This library implements the numerical integration, and uses *GNU Scientific Library* integration routines from the static library `libgsl.a`.
+In order to use Anisotropic Convolution Surfaces we need to build first the numerical integration code (in C). For that just run `make field_eval_static` in **PySkelton** source folder (`./PySkelton`) to build all the `*.c` files into `field_eval_static.so` shared library that is used by `nformulas.py`. This library implements the numerical integration, and uses *GNU Scientific Library* integration routines from the static library `libgsl.a`.
 
 Failure to build the shared library will prevent the use of anisotropic convolution (`PySkelton.Field`,`PySkelton.Mesher`), but the scaffolding algorithm should be fine.
 
