@@ -1,6 +1,6 @@
 # PySkelton
 
-PySkelton is a Python3 library for skeleton-based modeling. It includes a scaffolding algorithm and anisotropic convolution surfaces.
+PySkelton is a Python3 (tested with Python 3.7.2) library for skeleton-based modeling. It includes a scaffolding algorithm and anisotropic convolution surfaces.
 
 *Scaffold*: coarse quad mesh that follows the structure of the skeleton, more details in 
 > Fuentes Suárez, A. J. & Hubert, E. _Scaffolding skeletons using spherical Voronoi diagrams: Feasibility, regularity and symmetry_ Computer-Aided Design, Elsevier BV, 2018 , 102 , 83-93. [hal-01774909v1](https://hal.inria.fr/hal-01774909v1) DOI [10.1016/j.cad.2018.04.016](https://doi.org/10.1016/j.cad.2018.04.016)
@@ -21,9 +21,9 @@ In order to use Anisotropic Convolution Surfaces we need to build first the nume
 
 Failure to build the shared library will prevent the use of anisotropic convolution (`PySkelton.Field`,`PySkelton.Mesher`), but the scaffolding algorithm should be fine.
 
-## Intall python package
+## Install python package
 
-The python package can be bulins and installed by running
+The python package can be built and installed by running
 ```shell
 python setup.py sdist
 python setup.py install
