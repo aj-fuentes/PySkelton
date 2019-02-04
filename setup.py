@@ -29,7 +29,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     package_data={'': ['*.c','makefile','field_eval_static.so'],},
     keywords="scaffold skeleton modeling convolution surfaces",
-    install_requires=["pyhull","numpy","pyroots"],
+    install_requires=["pyhull","numpy","pyroots","swiglpk"],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
