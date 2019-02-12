@@ -296,7 +296,8 @@ class Mesher(object):
         ps = [
             f.shoot_ray(P,v[0]*N+v[1]*B,self.level_set,self.shoot_double_distance) for v in vs for P,(N,B) in zip(Ps,NBs)
         ]
-        self.draw_piece(vis,ps,color="blue",name="isolated_pieces",draw_mesh_lines=False)
+        pgs = [(p,f.gradient_eval(p)) for p in ps]
+        self.draw_piece(vis,pgs,skel=f.skel,color="blue",name="isolated_pieces",draw_mesh_lines=False)
 
 
     def compute_dangling_piece(self,i):
