@@ -98,8 +98,8 @@ def compute_biarc(A0,t0,A1,t1):
 
 def biarcs_from_curve(gamma,gammat,a,b,N):
     ts = np.linspace(a,b,N)
-    As = [gamma(t) for t in ts]
-    vs = [gammat(t) for t in ts]
+    As = [np.array(gamma(t)) for t in ts]
+    vs = [np.array(gammat(t)) for t in ts]
 
     aa = []
     for i in range(N-1):

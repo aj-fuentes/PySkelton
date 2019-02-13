@@ -1,6 +1,5 @@
 import setuptools
 import subprocess
-import os
 from setuptools.command.install import install
 
 class PySkeltonInstall(install):
@@ -12,7 +11,7 @@ class PySkeltonInstall(install):
     def compile_lib(self):
         wd = self.install_lib + "PySkelton"
         # print(f"----- The building is here: {wd} -----")
-        subprocess.run(["make", "field_eval"],cwd=wd,shell=True)
+        subprocess.run(["make", "field_eval_static"],cwd=wd,shell=False)
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -27,9 +26,9 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://gitlab.inria.fr/afuentes/pyskelton",
     packages=setuptools.find_packages(),
-    package_data={'': ['*.c','makefile'],},
+    package_data={'': ['*.c','makefile','libgsl.a'],},
     keywords="scaffold skeleton modeling convolution surfaces",
-    install_requires=["pyhull","numpy","pyroots"],
+    install_requires=["pyhull","numpy","pyroots","swiglpk"],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",

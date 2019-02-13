@@ -28,6 +28,8 @@ class Graph(object):
         if edge in self.edges:
             return
         self.edges.append(edge)
+        assert i<len(self.nodes),"Wrong edge {},{} -- {}>={}".format(i,j,i,len(self.nodes))
+        assert j<len(self.nodes),"Wrong edge {},{} -- {}>={}".format(i,j,j,len(self.nodes))
         self.incident_edges[i].append(edge)
         self.incident_edges[j].append(edge)
         return edge
@@ -99,20 +101,28 @@ class Graph(object):
 
         reading = None
         with open(fname,"rt") as f:
+            node_remap = []
             for line in f:
                 line = line.strip()
                 if not line or line[0]=="#": continue
-                if line=="nodes" or line=="edges" or line=="arcs" or line=="radii":
+                if line.isalpha():
                     reading=line
+                    read_nodes=0
                 elif reading=="nodes":
-                    i = self.add_node(np.fromstring(line,sep=" "))
-                    # if i<len(self.nodes)-1:
-                    #     print len(self.nodes)-1,i,line,self.nodes[i]
+                    node = np.fromstring(line,sep=" ")
+                    i = self.add_node(node)
+                    node_remap.append(i)
                 elif reading=="edges":
-                    # print line
-                    self.add_edge(*list(map(int,line.split())))
-                elif reading=="arcs":
-                    self.add_arc(list(map(int,line.split())))
-                elif reading=="radii":
-                    self.data["radii"].append(float(line))
+                    i,j = list(map(int,line.split()))
+                    i = node_remap[i]
+                    j = node_remap[j]
+                    self.add_edge(i,j)
+                else:
+                    val = float(line)
+                    #add value only if the node is not repeated
+                    if node_remap[read_nodes]>=len(self.data[reading]):
+                        self.data[reading].append(val)
+                    else:
+                        print("no data for {}, due to {}->{}".format(read_nodes,read_nodes,node_remap[read_nodes]))
+                    read_nodes+=1
 
