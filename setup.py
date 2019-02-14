@@ -26,7 +26,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://gitlab.inria.fr/afuentes/pyskelton",
     packages=setuptools.find_packages(),
-    package_data={'': ['*.c','makefile','libgsl.a'],},
+    package_data={'': ['*.c','makefile','libgsl.a','include/gsl/*.h'],},
     keywords="scaffold skeleton modeling convolution surfaces",
     install_requires=["pyhull","numpy","pyroots","swiglpk"],
     classifiers=[

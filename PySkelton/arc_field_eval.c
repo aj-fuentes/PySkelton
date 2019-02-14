@@ -1,11 +1,12 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <gsl/gsl_sf_bessel.h>
-#include <gsl/gsl_integration.h>
-#include <gsl/gsl_block.h>
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_matrix.h>
+
+#include "gsl/gsl_sf_bessel.h"
+#include "gsl/gsl_integration.h"
+#include "gsl/gsl_block.h"
+#include "gsl/gsl_vector.h"
+#include "gsl/gsl_matrix.h"
 
 
 //dot product
