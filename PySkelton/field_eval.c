@@ -53,7 +53,7 @@ double integrand_function(double t, void * ps) {
     double c = l * (XPB) / (params->c[0] * lt + params->c[1] * t);
     double d = 1.0e0 - (a * a + b * b + c * c) / (R * R);
     if (d < 0.0e0) return 0.0e0;
-    else return d * d * d;
+    else return d * d * d / a;
 }
 
 double compact_field_eval(double *X, double *P, double *T, double *N, double l, double *a, double *b, double *c, double* th, double max_r, double R, unsigned int n, double max_err) {
