@@ -1,6 +1,7 @@
 import pyhull
 import numpy as np
 import numpy.linalg as nla
+import math
 
 class ConvexHull(object):
     """ConvexHull"""
@@ -18,9 +19,19 @@ class ConvexHull(object):
 
         self.cos_merge = cos_merge #defines the angle for two facets to be considered coplanar
 
+        #radii for Laguerre scaffolds
+        self.radii = np.repeat(1.0,len(points))
+        self.wradii = np.repeat(np.pi/4,len(points))
+
     def get_point_from_graph_edge(self,edge):
         return self.graph_edges.index(edge)
 
+    def set_radii(self,rs):
+        assert len(rs)==len(self.points),"Number of radii must equal number of points"
+        self.radii = np.array([float(r) for r in rs])
+        #compute Laguerre radii
+        # self.wradii = self.radii*np.pi/(4*max(self.radii))
+        self.wradii = self.radii
 
     def compute_data(self):
         """Compute the convex hull and associated data"""
@@ -55,6 +66,10 @@ class ConvexHull(object):
 
             self.edge_arc = {(0,1):(n1,n2,2*np.pi)}
         else:
+            #we have more than 2 points
+            #prepare the points for Laguerre diagram
+            ps = ps/np.cos(self.wradii)[:,None]
+
             data = ['']
             try:
                 data = pyhull.qconvex('i FN Fn n -A%1.5f' % self.cos_merge,ps)
@@ -144,13 +159,35 @@ class ConvexHull(object):
             #add the edge to the list of adjacent edges to this point
             self.point_edges[i].append(edge)
 
+            def compute_laguerre_normal(facet_idx):
+                idxs = self.facets[facet_idx][:3]
+                A,B,C = [self.points[i] for i in idxs]
+                rA,rB,rC = [self.wradii[i] for i in idxs]
+                u = math.cos(rA)*B - math.cos(rB)*A
+                v = math.cos(rB)*C - math.cos(rC)*B
+                # u = B - A
+                # v = C - B
+                n = -np.cross(u,v)
+                n /= nla.norm(n)
+
+                # n2 = self.normals[facet_idx]
+
+                # print(n,n2,n-n2)
+
+                # m = (A+B+C)/3 #barycenter
+                # m /= nla.norm(m)
+                # if np.dot(n,m)<0:
+                #     n = -n
+                return n
 
             #save the two normals of the facets common to the edge
             if self.planar:
                 n = self.normals[f]
                 self.edge_normals[edge] = (n,-n)
             else:
-                self.edge_normals[edge] = (self.normals[f],self.normals[f2])
+                # self.edge_normals[edge] = (self.normals[f],self.normals[f2])
+                self.edge_normals[edge] = (compute_laguerre_normal(f),compute_laguerre_normal(f2))
+
 
 
             #compute the arc of this edge

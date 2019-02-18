@@ -3,6 +3,7 @@ import time
 import re
 import subprocess as sp
 import os
+import math
 
 import numpy as np
 import numpy.linalg as nla
@@ -109,7 +110,7 @@ class Scaffolder(object):
     def set_radii(self,rs):
         if len(rs)!=len(self.graph.nodes):
             raise ValueError("Length of radii list is not equal to the number of nodes")
-        self.radii = rs
+        self.radii = np.array(rs)
 
     def set_all_radius(self,r):
         self.radii = [r]*len(self.graph.nodes)
@@ -195,7 +196,10 @@ class Scaffolder(object):
 
         self.chs = []
         for i,av in enumerate(self.avs):
-            ch = ConvexHull([av[edge] for edge in self.graph.incident_edges[i]],self.cos_merge)
+            points = [av[edge] for edge in self.graph.incident_edges[i]]
+            radii = [self.radii[edge[0] if edge[0]!=i else edge[1]] for edge in self.graph.incident_edges[i]]
+            ch = ConvexHull(points,self.cos_merge)
+            ch.set_radii(radii)
             ch.compute_data()
             ch.process_data()
             self.chs.append(ch)
