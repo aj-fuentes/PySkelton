@@ -264,11 +264,14 @@ def get_eigenval_param(r,R,level_set,alpha):
     eigenval = ((R*R)/(r*r))*(1.0-term)
     return eigenval
 
-def get_radius_param(r,R,level_set,a):
-    alpha = 1.0/(a*a)
-    eigenval = get_eigenval_param(r,R,level_set,alpha)
-    # term = alpha*math.pow(0.5*level_set/(alpha*alpha*alpha),2.0/7.0)
-    # radius = (r/R) / math.sqrt(1.0 - term)
+_kernel_constant = 0.5493568319351
+def get_tangential_eigenval_param(r,R,level_set):
+    x = _kernel_constant
+    eigenval = ((R/r)*x)**2
+    return eigenval
+
+def get_radius_param(r,R,level_set):
+    eigenval = get_eigenval_param(r,R,level_set)
     radius = 1.0/math.sqrt(eigenval)
     return radius
 
