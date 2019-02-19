@@ -188,13 +188,14 @@ class ConvexHull(object):
                 # self.edge_normals[edge] = (self.normals[f],self.normals[f2])
                 self.edge_normals[edge] = (compute_laguerre_normal(f),compute_laguerre_normal(f2))
 
-
-
             #compute the arc of this edge
             if self.planar:
                 n1 = self.edge_normals[edge][0]
                 n2 = self.points[i] + self.points[j]
-                n2 = np.cross(np.cross(n1,n2),n1)
+                if np.isclose(nla.norm(n2),0.0):
+                    n2 = np.cross(n1,self.points[i])
+                else:
+                    n2 = np.cross(np.cross(n1,n2),n1)
                 n2 /= nla.norm(n2)
                 #barycenter of one triangle in the facet
                 b = (self.points[0]+self.points[1]+self.points[2])/3.0
