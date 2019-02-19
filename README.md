@@ -28,4 +28,8 @@ The python package can be built and installed by running
 python setup.py sdist
 python setup.py install
 ```
+##Examples
 
+In the folder `./examples` there are some example scripts showing the basic usage of the pakcage.
+
+TODO: Short description for each example
