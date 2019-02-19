@@ -48,12 +48,14 @@ double integrand_function(double t, void * ps) {
     double XPN =  params->XPN * _cos + params->XPB * _sin;
     double XPB = -params->XPN * _sin + params->XPB * _cos;
 
-    double a = l * (params->XPT - t) / (params->a[0] * lt + params->a[1] * t);
+    double da = l / (params->a[0] * lt + params->a[1] * t);
+    double a = da * (params->XPT - t);
     double b = l * (XPN) / (params->b[0] * lt + params->b[1] * t);
     double c = l * (XPB) / (params->c[0] * lt + params->c[1] * t);
     double d = 1.0e0 - (a * a + b * b + c * c) / (R * R);
+
     if (d < 0.0e0) return 0.0e0;
-    else return d * d * d / a;
+    else return d * d * d * da;
 }
 
 double compact_field_eval(double *X, double *P, double *T, double *N, double l, double *a, double *b, double *c, double* th, double max_r, double R, unsigned int n, double max_err) {
@@ -63,6 +65,8 @@ double compact_field_eval(double *X, double *P, double *T, double *N, double l, 
        -T[0]*N[2] + T[2]*N[0],
         T[0]*N[1] - T[1]*N[0]
     };
+
+
 
     double XP[3] = {X[0] - P[0], X[1] - P[1], X[2] - P[2]};
 

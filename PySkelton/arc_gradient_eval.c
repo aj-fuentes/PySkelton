@@ -89,7 +89,7 @@ double arc_integrand_gradient(double t, void * ps) {
 
     double val = a * da * (Ti) + b * db * (Ni) + c * dc * (Bi);
 
-    return d * d * val;
+    return d * d * val * da;
 }
 
 double arc_compact_gradient_eval(double *X, double *C, double r, double *u, double *v, double phi, double *a, double *b, double *c, double* th, double max_r, double R, int deriv, unsigned int n, double max_err) {

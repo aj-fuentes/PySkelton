@@ -58,12 +58,13 @@ double arc_integrand_function(double t, void * ps) {
     double XCN =  XCN0 * _cos + XCB0 * _sin;
     double XCB = -XCN0 * _sin + XCB0 * _cos;
 
-    double a = l * ( XCT         ) / (params->a[0] * lt + params->a[1] * t);
-    double b = l * ( XCN + r*_cos) / (params->b[0] * lt + params->b[1] * t);
-    double c = l * ( XCB - r*_sin) / (params->c[0] * lt + params->c[1] * t);
+    double da = l / (params->a[0] * lt + params->a[1] * t);
+    double a = da * ( XCT         );
+    double b =  l * ( XCN + r*_cos) / (params->b[0] * lt + params->b[1] * t);
+    double c =  l * ( XCB - r*_sin) / (params->c[0] * lt + params->c[1] * t);
     double d = 1.0e0 - (a * a + b * b + c * c) / (R * R);
     if (d < 0.0e0) return 0.0e0;
-    else return d * d * d;
+    else return d * d * d * da;
 }
 
 double arc_compact_field_eval(double *X, double *C, double r, double *u, double *v, double phi, double *a, double *b, double *c, double* th, double max_r, double R, unsigned int n, double max_err) {

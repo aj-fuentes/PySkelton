@@ -249,7 +249,7 @@ class G1Field(Field):
         return sum(f.gradient_eval(X) for f in self.fields)
 
 def make_field(R, skel, a=_default_radii, b=_default_radii, c=_default_radii, th=_default_angles, gsl_ws_size=100, max_error=1.0e-8):
-    assert isinstance(skel,sk.Skeleton),"<skel> is not a skelton.Skeleton"
+    assert isinstance(skel,sk.Skeleton),"<skel> is not an instance of PySkelton.Skeleton"
     klass = None
     if isinstance(skel,sk.Segment):
         klass = SegmentField
@@ -264,23 +264,16 @@ def get_eigenval_param(r,R,level_set):
     eigenval = ((R*R)/(r*r))*(1.0-term)
     return eigenval
 
+def get_tangential_eigenval_param(r,R,level_set):
+    eigenval = ((R/r)*0.5493568319351)**2
+    return eigenval
+
 def get_radius_param(r,R,level_set):
     eigenval = get_eigenval_param(r,R,level_set)
-    # term = alpha*math.pow(0.5*level_set/(alpha*alpha*alpha),2.0/7.0)
-    # radius = (r/R) / math.sqrt(1.0 - term)
     radius = 1.0/math.sqrt(eigenval)
     return radius
 
-def get_tangential_radius_from_tip_distance(r,R,level_set):
-    y = r/R
-    g = lambda x: 1.0 + (35.0/16.0)*( - x*y + (x*y)**3 - (x*y)**5 + (x*y)**7 ) - x*level_set
-    a = 0.0
-    b = 1.0
-    for b in np.linspace(0.001,1.0/y):
-        if g(b)<0.0: break
-    try:
-        a0 = _brent(g,a,b)
-    except pr.ConvergenceError as e:
-        print("r={} R={} level_set={}".format(r,R,level_set))
-        raise e
-    return a0
+def get_tangential_radius_param(r,R,level_set):
+    eigenval = get_tangential_eigenval_param(r,R,level_set)
+    radius = 1.0/math.sqrt(eigenval)
+    return radius
