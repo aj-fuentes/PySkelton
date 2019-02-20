@@ -29,8 +29,8 @@ python setup.py sdist
 python setup.py install
 ```
 
-##Examples
+## Examples
 
-In the folder `./examples` there are some example scripts showing the basic usage of the pakcage.
+In the folder `./examples` there are some example scripts showing the basic usage of the package.
 
 TODO: Short description for each example
