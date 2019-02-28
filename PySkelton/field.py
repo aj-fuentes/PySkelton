@@ -264,10 +264,20 @@ def get_eigenval_param(r,R,level_set):
     eigenval = ((R*R)/(r*r))*(1.0-term)
     return eigenval
 
-_kernel_constant = 0.5493568319351
+def get_omega_constant(level_set):
+    # = 0.5493568319351
+    p = lambda x: x-(x**3)+3.0/5.0*(x**5)-(x**7)/7.0 - (1-level_set)*16.0/35.0
+    _pr_brent2 = pr.Brentq(epsilon=1e-10)
+    _brent2 = lambda g,a,b: _pr_brent(g,a,b).x0
+    return _brent2(p,0,1)
+
+def get_eta_constant(level_set):
+    res = math.sqrt(1-math.pow(level_set*0.5,2/7))
+    return res
+
 def get_tangential_eigenval_param(r,R,level_set):
-    x = _kernel_constant
-    eigenval = ((R/r)*x)**2
+    w = get_omega_constant(level_set)
+    eigenval = ((R/r)*w)**2
     return eigenval
 
 def get_radius_param(r,R,level_set):
