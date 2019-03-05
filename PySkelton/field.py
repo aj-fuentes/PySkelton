@@ -260,8 +260,9 @@ def make_field(R, skel, a=_default_radii, b=_default_radii, c=_default_radii, th
     return klass(R, skel, a, b, c, th, gsl_ws_size, max_error)
 
 def get_eigenval_param(r,R,level_set):
-    term = math.pow(0.5*level_set,2.0/7.0)
-    eigenval = ((R*R)/(r*r))*(1.0-term)
+    # term = math.pow(0.5*level_set,2.0/7.0)
+    eta = get_eta_constant(level_set)
+    eigenval = ((R/r)*eta)**2
     return eigenval
 
 def get_omega_constant(level_set):
