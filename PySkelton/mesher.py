@@ -1,14 +1,15 @@
+import sys
+import itertools
+import multiprocessing as mp
+
 import numpy as np
 import numpy.linalg as nla
+
 from ._math import *
 from .visualization import skel_palette
 from .graph import Graph
 from .field import SegmentField,ArcField,G1Field,MultiField
 from .skeleton import Segment,Arc
-
-from multiprocessing import Pool
-import itertools
-
 
 def graph_and_pieces_from_field(field):
     pieces = []
@@ -68,10 +69,14 @@ def graph_and_pieces_from_field(field):
 
 _extra_dist = np.array([5.0,0.0,0.0])
 
+__last_r = None
 def _shoot_ray(args):
+    global __last_r
     f,(u,Q,guess_r),level_set,double_distance = args
+    if __last_r: guess_r = 1.1*__last_r
     point = f.shoot_ray(Q,u,level_set,double_distance,guess_r)
     grad  = f.gradient_eval(point)
+    __last_r = nla.norm(point-Q)
     return point,grad
 
 class Mesher(object):
@@ -89,8 +94,13 @@ class Mesher(object):
         self.level_set = 0.1
         self.shoot_double_distance = 8
 
-        self.workers_pool = Pool(4)
-        self.workers_pool2 = Pool(4)
+        self.count_field_evals = True #whether to count field evaluations
+        self.field_evals_counter = None #counter for field evaluations
+        self.multi_field_evals_counter = None #counter for multi_field evaluations
+        self.field_evals_time = None #save total time for field evaluations
+        self.ray_shooting_counter = None #counter for ray shootings
+
+        self.workers_pool = None #pool of workers for parallel ray shooting
 
         self.surface_name = "surface"
         self.surface_color = "magenta"
@@ -107,27 +117,40 @@ class Mesher(object):
         self.show_normals = False
         self.compute_normals = False
 
+    def init_pool_workers(self):
+        self.ray_shooting_counter = 0
+
+        self.field_evals_counter = None
+        self.multi_field_evals_counter = None
+        self.field_evals_time = None
+        if self.count_field_evals:
+            self.field_evals_counter = mp.Value('i',0)
+            self.multi_field_evals_counter = mp.Value('i',0)
+            self.field_evals_time = mp.Value('d',0)
+
+        def _init_counter(pk_module, eval_counter, multi_eval_counter, eval_time):
+            pk_module.field._eval_counter = eval_counter
+            pk_module.field._multi_eval_counter = multi_eval_counter
+            pk_module.field._eval_time = eval_time
+
+        _module_name,_,_ = __name__.partition(".")
+
+        self.workers_pool = mp.Pool(initializer=_init_counter,initargs=(sys.modules[_module_name],self.field_evals_counter,self.multi_field_evals_counter,self.field_evals_time))
+
 
     def compute(self):
+        self.init_pool_workers()
+
+        do_print = (not self.piece_ps) and (not self.dangling_ps) and self.count_field_evals
+
         if not self.piece_ps:
             self.piece_ps = [self.compute_piece(skel,nodes) for skel,nodes in self.pieces]
 
-        # if not self.line_ps:
-        #     if self.parallel_piece_computing:
-        #         args = itertools.izip(itertools.repeat(self),es)
-        #         self.line_ps = self.workers_pool2.map(_compute_line_piece,args)
-        #     else:
-        #         self.line_ps = [self.compute_line_piece(edge) for edge in es]
-
-        # if not self.arc_ps:
-        #     if self.parallel_piece_computing:
-        #         args = itertools.izip(itertools.repeat(self),arcs)
-        #         self.arc_ps = self.workers_pool2.map(_compute_arc_piece,args)
-        #     else:
-        #         self.arc_ps = [self.compute_arc_piece(cpiece) for cpiece in arcs ]
-
         if not self.dangling_ps:
             self.dangling_ps = [self.compute_dangling_piece(i) for i in self.scaff.graph.get_dangling_indices()]
+
+        if do_print:
+            self.print_summary_data()
 
     def draw(self,vis):
 
@@ -141,66 +164,11 @@ class Mesher(object):
         for ps in self.dangling_ps:
             self.draw_piece_cap(vis,ps)
 
-        # for ps in self.arc_ps:
-        #     self.draw_piece(vis,ps)
-        # # for ps in self.dangling_ps:
-        #     self.draw_piece(vis,ps)
-
-        # for skel,angle in zip(self.field.skel.skels,self.field.skel.angles):
-        #     vis.add_polyline([skel.extremities[0],skel.extremities[0]+skel.get_normal_at(0.0)],name="normals",color="blue")
-        #     vis.add_polyline([skel.extremities[1],skel.extremities[1]+skel.get_normal_at(skel.l)],name="normals",color="blue")
-
-
-        # normals
-        # for skel in [f.skel for f in self.field.fields]:
-        #     if not isinstance(skel,sk.Arc): continue
-        #     P = skel.extremities[0]
-        #     n = skel.get_normal_at(0.0)
-        #     b = skel.get_binormal_at(0.0)
-        #     assert np.isclose(np.dot(b,n),0.0),"Unrotated initial Normal and Binormal are not perpendicular"
-
-        #     vis.add_polyline([P,P+n],name="normals",color="red")
-        #     vis.add_polyline([P,P+b],name="binormals",color="green")
-
-        #     P = skel.extremities[1]
-        #     n = skel.get_normal_at(skel.l)
-        #     b = skel.get_binormal_at(skel.l)
-        #     assert np.isclose(np.dot(b,n),0.0),"Unrotated final Normal and Binormal are not perpendicular"
-
-        #     vis.add_polyline([P,P+n],name="normals_end",color="magenta")
-        #     vis.add_polyline([P,P+b],name="binormals_end",color="yellow")
-
-        #normals
-        # for skel,angle in zip(self.field.skel.skels,self.field.skel.angles):
-        #     P = skel.extremities[0]
-
-        #     n = skel.get_normal_at(0.0)
-        #     b = skel.get_binormal_at(0.0)
-        #     assert np.isclose(np.dot(b,n),0.0),"Unrotated initial Normal and Binormal are not perpendicular"
-
-        #     ni =  n*math.cos(angle) + b*math.sin(angle)
-        #     bi = -n*math.sin(angle) + b*math.cos(angle)
-        #     assert np.isclose(np.dot(bi,ni),0.0),"Initial Normal and Binormal are not perpendicular"
-
-        #     vis.add_polyline([P,P+ni],name="normals",color="blue")
-        #     vis.add_polyline([P,P+bi],name="binormals",color="green")
-
-        #     P = skel.extremities[1]
-
-        #     n = skel.get_normal_at(skel.l)
-        #     b = skel.get_binormal_at(skel.l)
-        #     assert np.isclose(np.dot(b,n),0.0),"Unrotated final Normal and Binormal are not perpendicular"
-
-        #     ne =  n*math.cos(angle) + b*math.sin(angle)
-        #     be = -n*math.sin(angle) + b*math.cos(angle)
-        #     assert np.isclose(np.dot(be,ne),0.0),"Final Normal and Binormal are not perpendicular"
-        #     vis.add_polyline([P,P+ne],name="normals",color="blue")
-        #     vis.add_polyline([P,P+be],name="binormals",color="green")
-
-
         return vis
 
     def shoot_ray_parallel(self,data):
+
+        self.ray_shooting_counter += len(data)
 
         fs = itertools.repeat(self.field)
         ls = itertools.repeat(self.level_set)
@@ -333,8 +301,6 @@ class Mesher(object):
         else:
             return self.shoot_ray(data)
 
-
-
     def get_shooting_num(self,skel):
         N = self.quads_num+1
         if self.max_quads_size>0.0:
@@ -359,19 +325,12 @@ class Mesher(object):
         N = self.get_shooting_num(skel)
         ts = np.linspace(0.0,1.0,N)
 
-        # print "GET POINT AT 0"
-        # print skel.get_point_at(0.0)
-        # print "GET POINT AT 0"
-
         Ps = [skel.get_point_at(t*skel.l) for t in ts] #Points
+        # _r = max(max(skel.field.b),max(skel.field.c))
         _r = None
         rs = [_r for t in ts]
         FsT = [skel.get_frame_at(t*skel.l).transpose() for t in ts] #Frames transposed
         Fi,Fe = skel.get_frame_at(0.0),skel.get_frame_at(skel.l) #initial and ending Frames
-
-        # print Fi
-        # print Fe
-        # print "final tangent",skel.get_tangent_at(skel.l)
 
         #convert cells to local coordinates
         local_cell1 = [(p*Fi).A1 for p in cell1]
@@ -382,21 +341,13 @@ class Mesher(object):
 
         #reorder cell1 to match the links
         local_cell1 = [local_cell1[idx] for idx in idxs]
-        # cell1 = [cell1[idx] for idx in idxs]
 
         #compute the shooting vectors data
         data = []
         for m,n,m2,n2 in zip(local_cell1,local_cell2,cell1,cell2):
-            # assert np.isclose(nla.norm((m*Fi*FsT[0]).A1-m),0.0),"Not inverse frames"
-            # assert np.isclose(nla.norm((n*Fe*FsT[-1]).A1-n),0.0),"Not inverse frames"
-            # print "pair",m,n
             vecs = [normalize((1.0-t)*m + t*n) for t in ts]
             vecs = [(v * Ft).A1 for Ft,v in zip(FsT,vecs)]
-            # print vecs[0]+Ps[0],vecs[-1]+Ps[-1]
-            # print m2+Ps[0],n2+Ps[-1]
-            # print map(nla.norm,vecs)
             data.extend(list(zip(vecs,Ps,rs)))
-            # break
 
         if self.parallel_ray_shooting:
             return self.shoot_ray_parallel(data)
@@ -426,6 +377,15 @@ class Mesher(object):
                 min_i = i
                 reverse = True
         res = [((-j if reverse else j)+min_i)%nn for j in idxs]
-        # print min_d,[cell1[idx] for idx in res],cell2
-        # print cell1,cell2,res
         return res
+
+    def print_summary_data(self):
+        mfev = self.multi_field_evals_counter.value
+        fev = self.field_evals_counter.value
+        rsh = self.ray_shooting_counter
+        avg = mfev/rsh
+        print(f"#ray shooting: {rsh}, #multi field evals: {mfev}, average multi field eval: {avg}, total field eval: {fev}")
+
+        ttime = self.field_evals_time.value
+        tavg = ttime/fev
+        print(f"total time: {ttime}, average time per atomic field: {tavg*1000:.2}ms")

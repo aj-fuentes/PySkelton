@@ -1,11 +1,13 @@
-# -*- coding: UTF-8 -*-
+import time
 import math
+import multiprocessing as mp
+
 import numpy as np
 import numpy.linalg as nla
+import pyroots as pr
 
 from . import skeleton as sk
 from . import nformulas as nf
-import pyroots as pr
 
 _default_radii = np.ones(2,dtype=float)
 _default_angles = np.zeros(2,dtype=float)
@@ -13,6 +15,10 @@ _default_angles = np.zeros(2,dtype=float)
 _pr_brent = pr.Brentq(epsilon=1e-6)
 _brent = lambda g,a,b: _pr_brent(g,a,b).x0
 # _brent = sco.brentq
+
+_eval_counter = None # should be initialized to mp.Value('i',0) when counting
+_multi_eval_counter = None # should be initialized to mp.Value('i',0) when counting
+_eval_time = None # should be initialized to mp.Value('d',0) when counting
 
 class Field(object):
     """docstring for Field"""
@@ -55,6 +61,15 @@ class Field(object):
     def shoot_ray(self, Q, m, level_value, guess_R=None, tol=1e-7, max_iters=100):
 
         R = self.R
+        if not (guess_R is None):
+            R = guess_R
+
+        # count_evals = 0
+        # def g(s):
+        #     nonlocal count_evals
+        #     count_evals += 1
+        #     return self.eval(Q+m*s)-level_value
+
         g = lambda s: self.eval(Q+m*s)-level_value
 
         assert g(0.0)>0.0,"Q={} is not an interior point of the surface".format(Q)
@@ -153,7 +168,14 @@ class SegmentField(Field):
         self.N = segment.get_normal_at(0)
 
     def eval(self, X):
-        return nf.compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        start = time.time()
+        res = nf.compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        end = time.time()
+        if not (_eval_counter is None):
+            _eval_counter.value += 1 #increment the counter of field evaluations
+        if not (_eval_time is None):
+            _eval_time.value += end-start
+        return res
 
     def gradient_eval(self,X):
         g0 = nf.compact_gradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,0,self.gsl_ws_size,self.max_error)
@@ -187,7 +209,14 @@ class ArcField(Field):
         self.phi = arc.phi
 
     def eval(self, X):
-        return nf.arc_compact_field_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        start = time.time()
+        res = nf.arc_compact_field_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        end = time.time()
+        if not (_eval_counter is None):
+            _eval_counter.value += 1 #increment the counter of field evaluations
+        if not (_eval_time is None):
+            _eval_time.value += end-start
+        return res
 
     def gradient_eval(self, X):
         g0 = nf.arc_compact_gradient_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.th,self.max_r,self.R,0,self.gsl_ws_size,self.max_error)
@@ -204,6 +233,8 @@ class MultiField(Field):
         self.coeffs = [1.0]*len(fields)
 
     def eval(self,X):
+        if not(_multi_eval_counter is None):
+            _multi_eval_counter.value += 1 #increment the counter of field evaluations
         return sum(c*f.eval(X) for c,f in zip(self.coeffs,self.fields))
 
     def gradient_eval(self, X):

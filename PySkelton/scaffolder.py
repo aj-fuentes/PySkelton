@@ -785,7 +785,6 @@ class Scaffolder(object):
                 qname = ("quads %d,%d _scaff" % edge) if self.split_output else "quads _scaff"
                 vis.add_mesh(ps,quads,color="darkolivegreen",name=qname)
 
-
             for p,q in zip(dc1,cell2):
                 mname = ("mesh_lines %d,%d _scaff" % edge) if self.split_output else "mesh_lines_scaff"
                 vis.add_polyline([p1+p,p2+q],color=visual.cyan,name=mname)
