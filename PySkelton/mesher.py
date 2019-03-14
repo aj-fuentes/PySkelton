@@ -1,5 +1,6 @@
 import sys
 import itertools
+import time
 import multiprocessing as mp
 
 import numpy as np
@@ -94,11 +95,12 @@ class Mesher(object):
         self.level_set = 0.1
         self.shoot_double_distance = 8
 
-        self.count_field_evals = True #whether to count field evaluations
+        self.count_field_evals = False #whether to count field evaluations
         self.field_evals_counter = None #counter for field evaluations
         self.multi_field_evals_counter = None #counter for multi_field evaluations
         self.field_evals_time = None #save total time for field evaluations
         self.ray_shooting_counter = None #counter for ray shootings
+        self.ray_shooting_timer = 0.0 #save real time (parallelims) of ray shooting
 
         self.workers_pool = None #pool of workers for parallel ray shooting
 
@@ -119,6 +121,7 @@ class Mesher(object):
 
     def init_pool_workers(self):
         self.ray_shooting_counter = 0
+        self.ray_shooting_timer = 0
 
         self.field_evals_counter = None
         self.multi_field_evals_counter = None
@@ -137,11 +140,8 @@ class Mesher(object):
 
         self.workers_pool = mp.Pool(initializer=_init_counter,initargs=(sys.modules[_module_name],self.field_evals_counter,self.multi_field_evals_counter,self.field_evals_time))
 
-
-    def compute(self):
+    def compute(self,print_summary=False):
         self.init_pool_workers()
-
-        do_print = (not self.piece_ps) and (not self.dangling_ps) and self.count_field_evals
 
         if not self.piece_ps:
             self.piece_ps = [self.compute_piece(skel,nodes) for skel,nodes in self.pieces]
@@ -149,12 +149,15 @@ class Mesher(object):
         if not self.dangling_ps:
             self.dangling_ps = [self.compute_dangling_piece(i) for i in self.scaff.graph.get_dangling_indices()]
 
-        if do_print:
+        self.workers_pool.close()
+        self.workers_pool.join()
+
+        if print_summary:
             self.print_summary_data()
 
     def draw(self,vis):
 
-        self.compute()
+        self.compute(print_summary=False)
 
         n_colors = len(skel_palette)
         for i,(ps,(skel,_)) in enumerate(zip(self.piece_ps,self.pieces)):
@@ -267,7 +270,6 @@ class Mesher(object):
         pgs = [(p,f.gradient_eval(p)) for p in ps]
         self.draw_piece(vis,pgs,skel=f.skel,color="blue",name="isolated_pieces",draw_mesh_lines=False)
 
-
     def compute_dangling_piece(self,i):
         P = self.scaff.graph.nodes[i]
         e = self.scaff.graph.incident_edges[i][0]
@@ -297,7 +299,11 @@ class Mesher(object):
             data.extend(list(zip(vecs,Ps,rs)))
 
         if self.parallel_ray_shooting:
-            return self.shoot_ray_parallel(data)
+            start = time.time()
+            res = self.shoot_ray_parallel(data)
+            end = time.time()
+            self.ray_shooting_timer += end-start
+            return res
         else:
             return self.shoot_ray(data)
 
@@ -350,7 +356,11 @@ class Mesher(object):
             data.extend(list(zip(vecs,Ps,rs)))
 
         if self.parallel_ray_shooting:
-            return self.shoot_ray_parallel(data)
+            start = time.time()
+            res = self.shoot_ray_parallel(data)
+            end = time.time()
+            self.ray_shooting_timer += end-start
+            return res
         else:
             return self.shoot_ray(data)
 
@@ -379,13 +389,16 @@ class Mesher(object):
         res = [((-j if reverse else j)+min_i)%nn for j in idxs]
         return res
 
-    def print_summary_data(self):
+    def print_summary_data(self,out=sys.stdout):
         mfev = self.multi_field_evals_counter.value
         fev = self.field_evals_counter.value
         rsh = self.ray_shooting_counter
         avg = mfev/rsh
-        print(f"#ray shooting: {rsh}, #multi field evals: {mfev}, average multi field eval: {avg}, total field eval: {fev}")
+        print(f"ray-shootings: {rsh}\nfield evals: {mfev}\naverage evals per ray-shooting: {avg}\nintegral evals: {fev}",file=out)
 
         ttime = self.field_evals_time.value
         tavg = ttime/fev
-        print(f"total time: {ttime}, average time per atomic field: {tavg*1000:.2}ms")
+        print(f"total integral time: {ttime}s\naverage time per intergal: {tavg*1000:.2}ms",file=out)
+
+        rstime = self.ray_shooting_timer
+        print(f"ray-shooting real time:{rstime}s",file=out)
