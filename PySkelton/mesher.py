@@ -162,7 +162,7 @@ class Mesher(object):
         n_colors = len(skel_palette)
         for i,(ps,(skel,_)) in enumerate(zip(self.piece_ps,self.pieces)):
             self.draw_piece(vis,ps,skel)
-            vis.add_polyline([skel.get_point_at(t) for t in np.linspace(0.0,skel.l,int(skel.l/0.2)+2)],name="skel_splines{}_mesher".format(i),color=skel_palette[i%n_colors])
+            vis.add_polyline([skel.get_point_at(t) for t in np.linspace(0.0,skel.l,int(skel.l/0.2)+2)],name="skel_splines_mesher".format(i),color=skel_palette[i%n_colors])
 
         for ps in self.dangling_ps:
             self.draw_piece_cap(vis,ps)
