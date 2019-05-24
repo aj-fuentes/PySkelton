@@ -169,7 +169,30 @@ class SegmentField(Field):
 
     def eval(self, X):
         start = time.time()
+
         res = nf.compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+
+        ####hack to get better evaluations
+        # t = np.dot(X-self.P,self.T)
+        # if t>0 and t<self.l:
+        #     a_ = (self.a[0]*(self.l-t) + self.a[1]*t)/self.l
+        #     b_ = (self.b[0]*(self.l-t) + self.b[1]*t)/self.l
+        #     c_ = (self.c[0]*(self.l-t) + self.c[1]*t)/self.l
+
+        #     a0 = np.array([self.a[0],a_])
+        #     b0 = np.array([self.b[0],b_])
+        #     c0 = np.array([self.c[0],c_])
+
+        #     a1 = np.array([a_,self.a[1]])
+        #     b1 = np.array([b_,self.b[1]])
+        #     c1 = np.array([c_,self.c[1]])
+
+        #     res = nf.compact_field_eval(X,self.P,self.T,self.N,t,a0,b0,c0,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        #     res += nf.compact_field_eval(X,self.P+self.T*t,self.T,self.N,self.l-t,a1,b1,c1,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        # else:
+        #     res = nf.compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        ####end of hack for better evaluations
+
         end = time.time()
         if not (_eval_counter is None):
             _eval_counter.value += 1 #increment the counter of field evaluations
