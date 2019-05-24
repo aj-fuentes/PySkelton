@@ -10,4 +10,6 @@ scaff = pk.Scaffolder(g)
 scaff.long_arc_angle = 2*pk.pi/8
 scaff.compute_scaffold()
 
-scaff.get_axel_visualization().show()
+vis = pk.get_axel_visualization("axl")
+scaff.draw(vis)
+vis.show()

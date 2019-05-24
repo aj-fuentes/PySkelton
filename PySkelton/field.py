@@ -1,11 +1,13 @@
-# -*- coding: UTF-8 -*-
+import time
 import math
+import multiprocessing as mp
+
 import numpy as np
 import numpy.linalg as nla
+import pyroots as pr
 
 from . import skeleton as sk
 from . import nformulas as nf
-import pyroots as pr
 
 _default_radii = np.ones(2,dtype=float)
 _default_angles = np.zeros(2,dtype=float)
@@ -13,6 +15,10 @@ _default_angles = np.zeros(2,dtype=float)
 _pr_brent = pr.Brentq(epsilon=1e-6)
 _brent = lambda g,a,b: _pr_brent(g,a,b).x0
 # _brent = sco.brentq
+
+_eval_counter = None # should be initialized to mp.Value('i',0) when counting
+_multi_eval_counter = None # should be initialized to mp.Value('i',0) when counting
+_eval_time = None # should be initialized to mp.Value('d',0) when counting
 
 class Field(object):
     """docstring for Field"""
@@ -55,6 +61,15 @@ class Field(object):
     def shoot_ray(self, Q, m, level_value, guess_R=None, tol=1e-7, max_iters=100):
 
         R = self.R
+        if not (guess_R is None):
+            R = guess_R
+
+        # count_evals = 0
+        # def g(s):
+        #     nonlocal count_evals
+        #     count_evals += 1
+        #     return self.eval(Q+m*s)-level_value
+
         g = lambda s: self.eval(Q+m*s)-level_value
 
         assert g(0.0)>0.0,"Q={} is not an interior point of the surface".format(Q)
@@ -153,7 +168,37 @@ class SegmentField(Field):
         self.N = segment.get_normal_at(0)
 
     def eval(self, X):
-        return nf.compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        start = time.time()
+
+        res = nf.compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+
+        ####hack to get better evaluations
+        # t = np.dot(X-self.P,self.T)
+        # if t>0 and t<self.l:
+        #     a_ = (self.a[0]*(self.l-t) + self.a[1]*t)/self.l
+        #     b_ = (self.b[0]*(self.l-t) + self.b[1]*t)/self.l
+        #     c_ = (self.c[0]*(self.l-t) + self.c[1]*t)/self.l
+
+        #     a0 = np.array([self.a[0],a_])
+        #     b0 = np.array([self.b[0],b_])
+        #     c0 = np.array([self.c[0],c_])
+
+        #     a1 = np.array([a_,self.a[1]])
+        #     b1 = np.array([b_,self.b[1]])
+        #     c1 = np.array([c_,self.c[1]])
+
+        #     res = nf.compact_field_eval(X,self.P,self.T,self.N,t,a0,b0,c0,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        #     res += nf.compact_field_eval(X,self.P+self.T*t,self.T,self.N,self.l-t,a1,b1,c1,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        # else:
+        #     res = nf.compact_field_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        ####end of hack for better evaluations
+
+        end = time.time()
+        if not (_eval_counter is None):
+            _eval_counter.value += 1 #increment the counter of field evaluations
+        if not (_eval_time is None):
+            _eval_time.value += end-start
+        return res
 
     def gradient_eval(self,X):
         g0 = nf.compact_gradient_eval(X,self.P,self.T,self.N,self.l,self.a,self.b,self.c,self.th,self.max_r,self.R,0,self.gsl_ws_size,self.max_error)
@@ -187,7 +232,14 @@ class ArcField(Field):
         self.phi = arc.phi
 
     def eval(self, X):
-        return nf.arc_compact_field_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        start = time.time()
+        res = nf.arc_compact_field_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.th,self.max_r,self.R,self.gsl_ws_size,self.max_error)
+        end = time.time()
+        if not (_eval_counter is None):
+            _eval_counter.value += 1 #increment the counter of field evaluations
+        if not (_eval_time is None):
+            _eval_time.value += end-start
+        return res
 
     def gradient_eval(self, X):
         g0 = nf.arc_compact_gradient_eval(X,self.C,self.r,self.u,self.v,self.phi,self.a,self.b,self.c,self.th,self.max_r,self.R,0,self.gsl_ws_size,self.max_error)
@@ -204,6 +256,8 @@ class MultiField(Field):
         self.coeffs = [1.0]*len(fields)
 
     def eval(self,X):
+        if not(_multi_eval_counter is None):
+            _multi_eval_counter.value += 1 #increment the counter of field evaluations
         return sum(c*f.eval(X) for c,f in zip(self.coeffs,self.fields))
 
     def gradient_eval(self, X):
@@ -249,7 +303,7 @@ class G1Field(Field):
         return sum(f.gradient_eval(X) for f in self.fields)
 
 def make_field(R, skel, a=_default_radii, b=_default_radii, c=_default_radii, th=_default_angles, gsl_ws_size=100, max_error=1.0e-8):
-    assert isinstance(skel,sk.Skeleton),"<skel> is not a skelton.Skeleton"
+    assert isinstance(skel,sk.Skeleton),"<skel> is not an instance of PySkelton.Skeleton"
     klass = None
     if isinstance(skel,sk.Segment):
         klass = SegmentField
@@ -259,15 +313,26 @@ def make_field(R, skel, a=_default_radii, b=_default_radii, c=_default_radii, th
         klass = G1Field
     return klass(R, skel, a, b, c, th, gsl_ws_size, max_error)
 
-def get_eigenval_param(r,R,level_set,alpha):
-    term = alpha*math.pow(0.5*level_set/(alpha*alpha*alpha),2.0/7.0)
-    eigenval = ((R*R)/(r*r))*(1.0-term)
+def get_eigenval_param(r,R,level_set):
+    # term = math.pow(0.5*level_set,2.0/7.0)
+    eta = get_eta_constant(level_set)
+    eigenval = ((R/r)*eta)**2
     return eigenval
 
-_kernel_constant = 0.5493568319351
+def get_omega_constant(level_set):
+    # = 0.5493568319351
+    p = lambda x: x-(x**3)+3.0/5.0*(x**5)-(x**7)/7.0 - (1-level_set)*16.0/35.0
+    _pr_brent2 = pr.Brentq(epsilon=1e-10)
+    _brent2 = lambda g,a,b: _pr_brent(g,a,b).x0
+    return _brent2(p,0,1)
+
+def get_eta_constant(level_set):
+    res = math.sqrt(1-math.pow(level_set*0.5,2/7))
+    return res
+
 def get_tangential_eigenval_param(r,R,level_set):
-    x = _kernel_constant
-    eigenval = ((R/r)*x)**2
+    w = get_omega_constant(level_set)
+    eigenval = ((R/r)*w)**2
     return eigenval
 
 def get_radius_param(r,R,level_set):
@@ -275,16 +340,7 @@ def get_radius_param(r,R,level_set):
     radius = 1.0/math.sqrt(eigenval)
     return radius
 
-def get_tangential_radius_from_tip_distance(r,R,level_set):
-    y = r/R
-    g = lambda x: 1.0 + (35.0/16.0)*( - x*y + (x*y)**3 - (x*y)**5 + (x*y)**7 ) - x*level_set
-    a = 0.0
-    b = 1.0
-    for b in np.linspace(0.001,1.0/y):
-        if g(b)<0.0: break
-    try:
-        a0 = _brent(g,a,b)
-    except pr.ConvergenceError as e:
-        print("r={} R={} level_set={}".format(r,R,level_set))
-        raise e
-    return a0
+def get_tangential_radius_param(r,R,level_set):
+    eigenval = get_tangential_eigenval_param(r,R,level_set)
+    radius = 1.0/math.sqrt(eigenval)
+    return radius

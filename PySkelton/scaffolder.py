@@ -3,6 +3,7 @@ import time
 import re
 import subprocess as sp
 import os
+import math
 
 import numpy as np
 import numpy.linalg as nla
@@ -109,7 +110,7 @@ class Scaffolder(object):
     def set_radii(self,rs):
         if len(rs)!=len(self.graph.nodes):
             raise ValueError("Length of radii list is not equal to the number of nodes")
-        self.radii = rs
+        self.radii = np.array(rs)
 
     def set_all_radius(self,r):
         self.radii = [r]*len(self.graph.nodes)
@@ -195,7 +196,10 @@ class Scaffolder(object):
 
         self.chs = []
         for i,av in enumerate(self.avs):
-            ch = ConvexHull([av[edge] for edge in self.graph.incident_edges[i]],self.cos_merge)
+            points = [av[edge] for edge in self.graph.incident_edges[i]]
+            radii = [self.radii[edge[0] if edge[0]!=i else edge[1]] for edge in self.graph.incident_edges[i]]
+            ch = ConvexHull(points,self.cos_merge)
+            ch.set_radii(radii)
             ch.compute_data()
             ch.process_data()
             self.chs.append(ch)
@@ -564,6 +568,12 @@ class Scaffolder(object):
             # p = self.node_cells[j][graph_edge][0]
             # n1 = np.cross(np.cross(n,p),n)
             # n1 /= nla.norm(n1)
+            # n2 = np.cross(n,n1)
+            # n2 /= nla.norm(n2)
+            # phi = 2*np.pi
+            # qs = [r*np.cos(t)*n1 + r*np.sin(t)*n2 for t in np.linspace(0,phi,subdiv+1)]
+            ################################
+
             ################################
             #project the cell onto this one
             qs = []
@@ -571,6 +581,7 @@ class Scaffolder(object):
                 n1 = np.cross(np.cross(n,p),n)
                 n1 /= nla.norm(n1)
                 qs.append(n1)
+            #################################
 
             self.node_cells[idx][graph_edge] = [r*q for q in qs]
 
@@ -682,6 +693,9 @@ class Scaffolder(object):
                     [0,3,6,7]  #p1 c d p2
                 ]
                 vis.add_mesh(ps,fs,name="hex_%d_%d_%d" % (i,j,hexs),color=visual.pastel_palette[(i+j+hexs) % len(visual.pastel_palette)])
+                for f in fs:
+                    for i in range(4):
+                        vis.add_polyline([ps[f[i-1]],ps[f[i]]],name="hex_meshline",color="black")
                 hexs += 1
 
             # if self.palette:
@@ -701,9 +715,9 @@ class Scaffolder(object):
             #     vis.add_mesh(ps,quads,color=dark_yellow,name=qname)
 
 
-            for p,q in zip(dc1,cell2):
-                mname = ("mesh lines %d,%d" % edge) if self.split_output else "mesh lines"
-                vis.add_polyline([p1+p,p2+q],color="cyan",name=mname)
+            # for p,q in zip(dc1,cell2):
+            #     mname = ("mesh_lines %d,%d" % edge) if self.split_output else "mesh_lines"
+            #     vis.add_polyline([p1+p,p2+q],color="cyan",name=mname)
 
         return vis
 
@@ -780,7 +794,6 @@ class Scaffolder(object):
 
                 qname = ("quads %d,%d _scaff" % edge) if self.split_output else "quads _scaff"
                 vis.add_mesh(ps,quads,color="darkolivegreen",name=qname)
-
 
             for p,q in zip(dc1,cell2):
                 mname = ("mesh_lines %d,%d _scaff" % edge) if self.split_output else "mesh_lines_scaff"
