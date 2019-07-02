@@ -220,6 +220,7 @@ class ConvexHull(object):
 
             #order the facets neighboring a point such that two consecutive facets share an edge
             facets_bag = set(self.point_neighbors[i])
+            if not facets_bag: continue
             first_facet = facets_bag.pop()
             f = first_facet
             while facets_bag:
