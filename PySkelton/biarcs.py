@@ -48,7 +48,6 @@ def get_arc_from_points(A,B,C):
 
     return (C0,u,v,r,phi)
 
-
 def plot(gamma,a,b,N=100,name="curve",color=green,origin=None,vis=None):
     P = origin
     if P is None:
@@ -124,7 +123,6 @@ def plot_biarcs(aa,origin=None,vis=None):
     for P,n1,n2,r,phi in aa:
         arc1 = lambda t: P+n1*np.cos(t)*r+n2*math.sin(t)*r
         plot(arc1,0,phi,name="arcs",color=magenta,origin=O,vis=vis)
-
 
 def circular_spline_from_points(ps,max_tangent_length=1.0):
     assert len(ps)>2,"Can't get a spline for less than 3 points"
