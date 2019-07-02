@@ -55,6 +55,8 @@ class Segment(Skeleton):
 
         self.binormal = normalize(np.cross(v,n))
         check_unit(self.binormal)
+        check_perp(self.binormal,self.v)
+        check_perp(self.binormal,self.n)
 
         self.F = np.matrix([v,n,self.binormal]).T
 

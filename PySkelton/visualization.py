@@ -28,6 +28,7 @@ skel_palette = ["crimson","green","blue","gold","deeppink","darkturquoise","slat
 def get_axel_visualization(axel_path="/user/afuentes/home/Programs/miniconda3/bin/axl"):
     # return VisualizationVPython()
     return VisualizationAxel(axel_path)
+get_visualization = get_axel_visualization
 
 def _verify_color(color):
     if isinstance(color,str):
