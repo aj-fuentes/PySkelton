@@ -33,4 +33,4 @@ python setup.py install
 
 In the folder `./examples` there are some example scripts showing the basic usage of the package.
 
-TODO: Short description for each example
+TODO: Short description for each example.
